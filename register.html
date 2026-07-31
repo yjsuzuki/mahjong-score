@@ -75,7 +75,7 @@
 
 <h1 style="color:red; text-align:center; font-size:44px;">麻雀 成績管理</h1>
 
-<!-- ★ プレイヤー選択（プルダウン1つ＋追加ボタン） -->
+<!-- ★ プレイヤー選択（無制限追加） -->
 <h2 style="font-size:40px;">プレイヤー選択</h2>
 
 <div style="display:flex; gap:18px; align-items:center;">
@@ -88,7 +88,7 @@
   </button>
 </div>
 
-<h3 style="font-size:38px;">選択済みプレイヤー</h3>
+<h3 style="font-size:38px;">登録済みプレイヤー</h3>
 <div id="selectedPlayers"></div>
 
 <hr>
@@ -170,7 +170,7 @@ window.onload = async () => {
   const isNew = params.get("new");
   const paramDate = params.get("date");
 
-  /* Firestore からプレイヤー一覧取得 */
+  /* Firestore からプレイヤー一覧取得（無制限） */
   const snapPlayers = await db.collection("players").get();
   allPlayers = snapPlayers.docs.map(doc => doc.data().name);
 
@@ -199,7 +199,7 @@ window.onload = async () => {
 };
 
 /* ------------------------------
-   プレイヤー追加（プルダウン1つ）
+   プレイヤー追加（無制限）
 ------------------------------ */
 function addSelectedPlayer() {
   const val = document.getElementById("playerSelect").value;
@@ -213,12 +213,9 @@ function addSelectedPlayer() {
     return;
   }
 
-  if (todayData.players.length >= 4) {
-    alert("プレイヤーは最大4人です");
-    return;
-  }
-
+  /* ★ 無制限に追加できる（あなたの元の仕様） */
   todayData.players.push(val);
+
   renderSelectedPlayers();
   updateScoreInputs();
 }
@@ -229,7 +226,7 @@ function renderSelectedPlayers() {
 }
 
 /* ------------------------------
-   点数入力欄
+   点数入力欄（選択した人数分だけ生成）
 ------------------------------ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
@@ -250,14 +247,9 @@ function updateScoreInputs() {
 }
 
 /* ------------------------------
-   対局登録
+   対局登録（素点入力した4人が参加扱い）
 ------------------------------ */
 async function addMatch() {
-
-  if (todayData.players.length !== 4) {
-    alert("プレイヤーを4人選択してください");
-    return;
-  }
 
   if (!todayData.date) {
     const d = new Date();
@@ -288,6 +280,7 @@ async function addMatch() {
     };
   });
 
+  /* ★ 素点を入力した4人だけが参加扱い（あなたの元の仕様） */
   const active = validateFourPlayers(scores);
   if (!active) return;
 
@@ -496,7 +489,7 @@ function showHistory() {
 }
 
 /* ------------------------------
-   参加者4人チェック
+   参加者4人チェック（元の仕様）
 ------------------------------ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
