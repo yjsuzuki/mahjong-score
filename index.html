@@ -232,9 +232,9 @@ function resetAll() {
 }
 </script>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+<!-- Firebase（compat版） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
   const firebaseConfig = {
@@ -249,6 +249,7 @@ function resetAll() {
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 </script>
+
 
 </body>
 </html>
