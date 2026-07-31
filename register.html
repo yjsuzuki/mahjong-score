@@ -132,23 +132,25 @@
 <h2 style="font-size:22px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+<!-- Firebase（compat版） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDc6f_NEYzJ4kKrkLEfWyGc6Ou3yb7ZTk",
-  authDomain: "mahjong-score-85942.firebaseapp.com",
-  projectId: "mahjong-score-85942",
-  storageBucket: "mahjong-score-85942.firebasestorage.app",
-  messagingSenderId: "524280113731",
-  appId: "1:524280113731:web:32d9368f9c9e58fb9802f6"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyDc6f_NEYzJ4kKrkLEfWyGc6Ou3yb7ZTk",
+    authDomain: "mahjong-score-85942.firebaseapp.com",
+    projectId: "mahjong-score-85942",
+    storageBucket: "mahjong-score-85942.firebasestorage.app",
+    messagingSenderId: "524280113731",
+    appId: "1:524280113731:web:32d9368f9c9e58fb9802f6"
+  };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 
+<script>
 let todayData = null;
 let editingMatchIndex = null;
 
@@ -207,7 +209,7 @@ function updateScoreInputs() {
   scoreArea.innerHTML = "";
 
   todayData.players.forEach(name => {
-    scoreInputs.innerHTML += `
+    scoreArea.innerHTML += `
       <div style="margin-bottom:12px;">
         <strong>${name}</strong><br>
         <input type="number" id="score_${name}" placeholder="素点">
