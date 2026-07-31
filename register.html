@@ -2,77 +2,139 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>麻雀 成績管理（完全版）</title>
+<title>麻雀 成績管理（スマホ最適化版）</title>
 <style>
-  body { font-family:"Yu Gothic"; background:#111; color:#f5d76e; padding:20px; }
-  input { padding:6px; margin:5px; width:120px; background:#222; color:#f5d76e; border:1px solid #444; }
+  body {
+    font-family:"Yu Gothic";
+    background:#111;
+    color:#f5d76e;
+    padding:15px;
+    font-size:18px;
+  }
+
+  input {
+    padding:10px;
+    margin:6px 0;
+    width:100%;
+    background:#222;
+    color:#f5d76e;
+    border:1px solid #444;
+    border-radius:6px;
+    font-size:18px;
+  }
+
   button {
-    padding:8px 15px;
-    margin:5px;
+    padding:12px;
+    margin:10px 0;
     background:#bfa14a;
     color:#111;
     border:none;
     font-weight:bold;
     cursor:pointer;
-    border-radius:6px;
+    border-radius:8px;
+    width:100%;
+    font-size:20px;
   }
+
   button:hover { background:#d4b75a; }
 
-  table { border-collapse:collapse; width:100%; background:#222; margin-top:20px; }
-  th,td { border:1px solid #555; padding:10px; text-align:center; }
+  table {
+    border-collapse:collapse;
+    width:100%;
+    background:#222;
+    margin-top:20px;
+    font-size:16px;
+  }
+
+  th,td {
+    border:1px solid #555;
+    padding:10px;
+    text-align:center;
+  }
+
   th { background:#333; }
-  #playerList span { margin-right:20px; font-size:20px; color:yellow; }
+
+  #playerList span {
+    display:inline-block;
+    margin-right:12px;
+    margin-bottom:8px;
+    font-size:20px;
+    color:yellow;
+  }
+
+  /* スマホで横スクロール可能にする */
+  #historyTable {
+    overflow-x:auto;
+    display:block;
+    white-space:nowrap;
+  }
+
+  /* 不参加チェックの間隔を最小に */
+  .absentLabel {
+    margin-left:6px;
+    font-size:18px;
+  }
+
+  .absentLabel input {
+    width:auto;
+    margin-right:2px;
+  }
+
 </style>
 </head>
 <body>
 
-<button onclick="location.href='index.html'" style="margin-bottom:20px;">
+<button onclick="location.href='index.html'">
   トップ画面に戻る
 </button>
 
-<h1 style="color:red;">麻雀 成績管理（完全版）</h1>
+<h1 style="color:red; text-align:center; font-size:26px;">麻雀 成績管理</h1>
 
-<h2 id="dateTitle"></h2>
+<h2 id="dateTitle" style="font-size:22px;"></h2>
 
-<h2>プレイヤー登録（最大5人）</h2>
-<input id="playerName" placeholder="プレイヤー名">
-<button onclick="addPlayer()">追加</button>
+<h2 style="font-size:22px;">プレイヤー登録（最大5人）</h2>
+<input id="playerName" placeholder="プレイヤー名を入力">
+<button onclick="addPlayer()">プレイヤー追加</button>
 
-<h3>登録済みプレイヤー</h3>
+<h3 style="font-size:20px;">登録済みプレイヤー</h3>
 <div id="playerList"></div>
 
 <hr>
 
-<h2>ウマ設定（4人対局固定）</h2>
-1位 → <input id="uma1" type="number" value="10">
-2位 → <input id="uma2" type="number" value="5">
-3位 → <input id="uma3" type="number" value="-5">
-4位 → <input id="uma4" type="number" value="-10">
+<h2 style="font-size:22px;">ウマ設定（4人対局固定）</h2>
+<input id="uma1" type="number" value="10" placeholder="1位のウマ">
+<input id="uma2" type="number" value="5" placeholder="2位のウマ">
+<input id="uma3" type="number" value="-5" placeholder="3位のウマ">
+<input id="uma4" type="number" value="-10" placeholder="4位のウマ">
 
-<h2>役満祝儀設定</h2>
-役満達成者に対して未達成者が支払うポイント  
-→ <input id="yakumanBonus" type="number" value="5">
+<h2 style="font-size:22px;">役満祝儀設定</h2>
+<input id="yakumanBonus" type="number" value="5" placeholder="役満祝儀">
 
 <hr>
 
-<h2>対局登録（4人だけ参加可能）</h2>
+<h2 style="font-size:22px;">対局登録（4人だけ参加可能）</h2>
 <div id="scoreInputs"></div>
+
 <button onclick="addMatch()">対局を登録する</button>
-<button id="updateBtn" onclick="updateMatch()" style="display:none; background:#66cc66;">更新する</button>
+<button id="updateBtn" onclick="updateMatch()" style="display:none; background:#66cc66;">
+  対局を更新する
+</button>
 
 <hr>
 
-<h2>対局履歴</h2>
-<table id="historyTable">
-  <thead>
-    <tr id="historyHeader"></tr>
-  </thead>
-  <tbody id="historyBody"></tbody>
-</table>
+<h2 style="font-size:22px;">対局履歴</h2>
+<div id="historyTable">
+  <table>
+    <thead>
+      <tr id="historyHeader"></tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+</div>
 
 <hr>
 
-<h2>成績（合計）</h2>
+<h2 style="font-size:22px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
 <script>
@@ -80,6 +142,7 @@ let history = [];
 let todayData = null;
 let date = null;
 let editingMatchIndex = null;
+let isSavedToHistory = false;
 
 window.onload = () => {
   const params = new URLSearchParams(location.search);
@@ -101,12 +164,12 @@ window.onload = () => {
       matches: []
     };
 
-    history.push(todayData);
-    saveData();
+    isSavedToHistory = false;
   }
   else {
     date = paramDate;
     todayData = history.find(h => h.date === date);
+    isSavedToHistory = true;
   }
 
   document.getElementById("dateTitle").innerText = date + " の対局";
@@ -130,7 +193,6 @@ function addPlayer() {
   }
 
   todayData.players.push(name);
-  saveData();
   playerName.value = "";
   updatePlayerList();
   updateScoreInputs();
@@ -145,22 +207,28 @@ function updatePlayerList() {
 
 function updateScoreInputs() {
   scoreInputs.innerHTML = "";
+
+  const showAbsent = todayData.players.length >= 5;
+
   todayData.players.forEach(name => {
     scoreInputs.innerHTML += `
-      <div>
-        ${name}：
+      <div style="margin-bottom:12px;">
+        <strong>${name}</strong><br>
         <input type="number" id="score_${name}" placeholder="素点">
-        役満<input type="number" id="yakuman_${name}" value="0" min="0" style="width:60px;">
-        <label style="margin-left:20px;">
-          <input type="checkbox" id="absent_${name}" onchange="toggleAbsent('${name}')">
-          不参加
-        </label>
+        <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満">
+        ${
+          showAbsent
+            ? `<label class="absentLabel">
+                 <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
+                 不参加
+               </label>`
+            : ""
+        }
       </div>
     `;
   });
 }
 
-/* ★ 不参加チェックで入力欄をクリア＆無効化 ★ */
 function toggleAbsent(name) {
   const absent = document.getElementById("absent_" + name).checked;
   const score = document.getElementById("score_" + name);
@@ -177,7 +245,6 @@ function toggleAbsent(name) {
   }
 }
 
-/* ★★★★★ 不参加チェック対応の4人判定 ★★★★★ */
 function validateFourPlayers(scores) {
 
   scores.forEach(p => {
@@ -185,7 +252,9 @@ function validateFourPlayers(scores) {
   });
 
   const active = scores.filter(p => {
-    const absent = document.getElementById("absent_" + p.name).checked;
+    const absentBox = document.getElementById("absent_" + p.name);
+    const absent = absentBox ? absentBox.checked : false;
+
     if (absent) return false;
     return p.score !== "" && !isNaN(Number(p.score));
   });
@@ -206,12 +275,14 @@ function addMatch() {
     Number(uma4.value)
   ];
 
-  const yakuBonus = Number(document.getElementById("yakumanBonus").value);
+  const yakuBonus = Number(yakumanBonus.value);
 
   let scores = todayData.players.map(name => {
-    const scoreVal = document.getElementById("score_" + name).value;
-    const yakuVal = document.getElementById("yakuman_" + name).value;
-    return { name, score: scoreVal, yakuman: Number(yakuVal) };
+    return {
+      name,
+      score: document.getElementById("score_" + name).value,
+      yakuman: Number(document.getElementById("yakuman_" + name).value)
+    };
   });
 
   const active = validateFourPlayers(scores);
@@ -253,9 +324,14 @@ function addMatch() {
 
   todayData.matches.push({
     match: todayData.matches.length + 1,
-    row: row,
+    row,
     time: new Date().toLocaleString()
   });
+
+  if (!isSavedToHistory) {
+    history.push(todayData);
+    isSavedToHistory = true;
+  }
 
   saveData();
   alert("登録しました");
@@ -272,8 +348,10 @@ function editMatch(index) {
     const absentBox = document.getElementById("absent_" + name);
 
     if (!r) {
-      absentBox.checked = true;
-      toggleAbsent(name);
+      if (absentBox) {
+        absentBox.checked = true;
+        toggleAbsent(name);
+      }
       return;
     }
 
@@ -283,11 +361,13 @@ function editMatch(index) {
     document.getElementById("score_" + name).value = score;
     document.getElementById("yakuman_" + name).value = yakuman;
 
-    absentBox.checked = false;
-    toggleAbsent(name);
+    if (absentBox) {
+      absentBox.checked = false;
+      toggleAbsent(name);
+    }
   });
 
-  document.getElementById("updateBtn").style.display = "inline-block";
+  updateBtn.style.display = "block";
 }
 
 function updateMatch() {
@@ -300,12 +380,14 @@ function updateMatch() {
     Number(uma4.value)
   ];
 
-  const yakuBonus = Number(document.getElementById("yakumanBonus").value);
+  const yakuBonus = Number(yakumanBonus.value);
 
   let scores = todayData.players.map(name => {
-    const scoreVal = document.getElementById("score_" + name).value;
-    const yakuVal = document.getElementById("yakuman_" + name).value;
-    return { name, score: scoreVal, yakuman: Number(yakuVal) };
+    return {
+      name,
+      score: document.getElementById("score_" + name).value,
+      yakuman: Number(document.getElementById("yakuman_" + name).value)
+    };
   });
 
   const active = validateFourPlayers(scores);
@@ -352,7 +434,7 @@ function updateMatch() {
   alert("更新しました");
 
   editingMatchIndex = null;
-  document.getElementById("updateBtn").style.display = "none";
+  updateBtn.style.display = "none";
 
   showHistory();
 }
@@ -366,8 +448,7 @@ function showHistory() {
   });
   historyHeader.innerHTML += "<th>時間</th><th>修正</th>";
 
-  const tbody = document.getElementById("historyBody");
-  tbody.innerHTML = "";
+  historyBody.innerHTML = "";
 
   todayData.matches.forEach((h, index) => {
     let tr = `<td>${h.match}</td>`;
@@ -380,7 +461,7 @@ function showHistory() {
     tr += `<td>${h.time}</td>`;
     tr += `<td><button onclick="editMatch(${index})">修正</button></td>`;
 
-    tbody.innerHTML += "<tr>" + tr + "</tr>";
+    historyBody.innerHTML += "<tr>" + tr + "</tr>";
   });
 
   let totals = {};
@@ -401,9 +482,8 @@ function showHistory() {
     .map(([name, total]) => ({ name, total }))
     .sort((a,b) => b.total - a.total);
 
-  const container = document.getElementById("totalContainer");
-  container.innerHTML = `
-    <table border="1" style="width:100%; background:#222; color:#f5d76e;">
+  totalContainer.innerHTML = `
+    <table>
       <thead>
         <tr>
           <th>順位</th>
@@ -411,21 +491,17 @@ function showHistory() {
           <th>ポイント</th>
         </tr>
       </thead>
-      <tbody id="forceTotalBody"></tbody>
+      <tbody>
+        ${ranking.map((p,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${p.name}</td>
+            <td>${p.total}</td>
+          </tr>
+        `).join("")}
+      </tbody>
     </table>
   `;
-
-  const tbody2 = document.getElementById("forceTotalBody");
-  tbody2.innerHTML = "";
-
-  ranking.forEach((p,i) => {
-    tbody2.innerHTML += `
-      <tr>
-        <td>${i+1}</td>
-        <td>${p.name}</td>
-        <td>${p.total}</td>
-      </tr>`;
-  });
 }
 </script>
 
