@@ -36,8 +36,6 @@
     font-size:36px;
   }
 
-  button:hover { background:#d4b75a; }
-
   table {
     border-collapse:collapse;
     width:100%;
@@ -85,16 +83,28 @@
 
 <hr>
 
-<h2 style="font-size:36px;">ウマ　　　役満祝儀</h2>
+<!-- ★ 見出しを横並びに ★ -->
+<div style="display:flex; gap:120px; align-items:center;">
+  <h2 style="font-size:36px;">ウマ</h2>
+  <h2 style="font-size:36px;">役満祝儀</h2>
+</div>
 
 <!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
-<div style="display:flex; gap:18px; flex-wrap:wrap;">
-  <input id="uma1" type="number" value="10" style="width:120px;">
-  <input id="uma2" type="number" value="5" style="width:120px;">
-  <input id="uma3" type="number" value="-5" style="width:120px;">
-  <input id="uma4" type="number" value="-10" style="width:120px;">
+<div style="display:flex; gap:40px; flex-wrap:wrap;">
 
-  <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
+  <!-- 左端揃えのためにグループ化 -->
+  <div style="display:flex; gap:14px;">
+    <input id="uma1" type="number" value="10" style="width:120px;">
+    <input id="uma2" type="number" value="5" style="width:120px;">
+    <input id="uma3" type="number" value="-5" style="width:120px;">
+    <input id="uma4" type="number" value="-10" style="width:120px;">
+  </div>
+
+  <!-- 少し間をあけて右側に役満祝儀 -->
+  <div style="margin-left:40px;">
+    <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
+  </div>
+
 </div>
 
 <hr>
@@ -194,7 +204,7 @@ function updatePlayerList() {
 }
 
 /* ------------------------------
-   点数入力欄（チェックボックス削除済み）
+   点数入力欄
 ------------------------------ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
@@ -304,7 +314,8 @@ async function addMatch() {
 
     const totalPoint = r.score + umaPoint + yakuPoint;
 
-    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+    /* ★ 履歴表示用フォーマット：素点 (合計) ★ */
+    row[r.name] = `${r.score}（${totalPoint}）`;
   });
 
   todayData.matches.push({
@@ -333,10 +344,12 @@ function editMatch(index) {
     if (!r) return;
 
     const score = r.match(/^(-?\d+)/)[1];
-    const yakuman = r.match(/役満:(\d+)/)[1];
+    const total = r.match(/（(-?\d+)）/)[1];
 
     document.getElementById("score_" + name).value = score;
-    document.getElementById("yakuman_" + name).value = yakuman;
+
+    /* yakuman は履歴に含まれないので 0 に戻す */
+    document.getElementById("yakuman_" + name).value = 0;
   });
 
   updateBtn.style.display = "block";
@@ -399,7 +412,7 @@ function updateMatch() {
 
     const totalPoint = r.score + umaPoint + yakuPoint;
 
-    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+    row[r.name] = `${r.score}（${totalPoint}）`;
   });
 
   todayData.matches[editingMatchIndex].row = row;
@@ -449,7 +462,7 @@ function showHistory() {
       const r = h.row[name];
       if (!r) return;
 
-      const match = r.match(/[（(]([-0-9]+)[）)]/);
+      const match = r.match(/（(-?\d+)）/);
       const point = match ? Number(match[1]) : 0;
 
       totals[name] = (totals[name] || 0) + point;
