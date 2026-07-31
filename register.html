@@ -41,7 +41,7 @@
     width:100%;
     background:#222;
     margin-top:24px;
-    font-size:30px;
+    font-size:32px;
   }
 
   th,td {
@@ -67,9 +67,9 @@
   トップ画面に戻る
 </button>
 
-<h1 style="color:red; text-align:center; font-size:40px;">麻雀 成績管理</h1>
+<h1 style="color:red; text-align:center; font-size:42px;">麻雀 成績管理</h1>
 
-<h2 style="font-size:36px;">プレイヤー登録（人数無制限）</h2>
+<h2 style="font-size:38px;">プレイヤー登録（人数無制限）</h2>
 
 <div style="display:flex; gap:18px; align-items:center;">
   <input id="playerName" placeholder="プレイヤー名を入力" style="flex:2;">
@@ -78,21 +78,18 @@
   </button>
 </div>
 
-<h3 style="font-size:34px;">登録済みプレイヤー</h3>
+<h3 style="font-size:36px;">登録済みプレイヤー</h3>
 <div id="playerList"></div>
 
 <hr>
 
-<!-- ★ 見出しを横並びに ★ -->
 <div style="display:flex; gap:120px; align-items:center;">
-  <h2 style="font-size:36px;">ウマ</h2>
-  <h2 style="font-size:36px;">役満祝儀</h2>
+  <h2 style="font-size:38px;">ウマ</h2>
+  <h2 style="font-size:38px;">役満祝儀</h2>
 </div>
 
-<!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
-<div style="display:flex; gap:40px; flex-wrap:wrap;">
+<div style="display:flex; gap:40px; flex-wrap:wrap; align-items:center;">
 
-  <!-- 左端揃えのためにグループ化 -->
   <div style="display:flex; gap:14px;">
     <input id="uma1" type="number" value="10" style="width:120px;">
     <input id="uma2" type="number" value="5" style="width:120px;">
@@ -100,16 +97,13 @@
     <input id="uma4" type="number" value="-10" style="width:120px;">
   </div>
 
-  <!-- 少し間をあけて右側に役満祝儀 -->
-  <div style="margin-left:40px;">
-    <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
-  </div>
+  <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
 
 </div>
 
 <hr>
 
-<h2 style="font-size:36px;">対局登録</h2>
+<h2 style="font-size:38px;">対局登録</h2>
 
 <div id="scoreInputs"></div>
 
@@ -120,7 +114,7 @@
 
 <hr>
 
-<h2 style="font-size:36px;">対局履歴</h2>
+<h2 style="font-size:38px;">対局履歴</h2>
 <div id="historyTable">
   <table>
     <thead>
@@ -132,10 +126,9 @@
 
 <hr>
 
-<h2 style="font-size:36px;">成績（合計）</h2>
+<h2 style="font-size:40px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -157,9 +150,6 @@
 let todayData = null;
 let editingMatchIndex = null;
 
-/* ------------------------------
-   初期ロード
------------------------------- */
 window.onload = async () => {
   const params = new URLSearchParams(location.search);
   const isNew = params.get("new");
@@ -182,9 +172,6 @@ window.onload = async () => {
   showHistory();
 };
 
-/* ------------------------------
-   プレイヤー追加
------------------------------- */
 function addPlayer() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
@@ -203,9 +190,6 @@ function updatePlayerList() {
   });
 }
 
-/* ------------------------------
-   点数入力欄
------------------------------- */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
@@ -215,14 +199,14 @@ function updateScoreInputs() {
     scoreArea.innerHTML += `
       <div style="margin-bottom:32px;">
 
-        <strong style="font-size:38px;">${name}</strong>
+        <strong style="font-size:40px;">${name}</strong>
 
         <div style="display:flex; gap:70px; align-items:center; margin-top:20px;">
-          <input type="number" id="score_${name}" placeholder="素点" style="width:240px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="width:260px;">
 
-          <span style="font-size:34px;">役満回数</span>
+          <span style="font-size:36px;">役満回数</span>
 
-          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:240px;">
+          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:260px;">
         </div>
 
       </div>
@@ -230,9 +214,6 @@ function updateScoreInputs() {
   });
 }
 
-/* ------------------------------
-   参加者4人チェック（素点入力者が参加扱い）
------------------------------- */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
     p.score = p.score.replace(/[\s　]+/g, "");
@@ -248,9 +229,6 @@ function validateFourPlayers(scores) {
   return active;
 }
 
-/* ------------------------------
-   対局登録（登録した日の YYYY-MM-DD を使う）
------------------------------- */
 async function addMatch() {
 
   if (!todayData.date) {
@@ -314,7 +292,6 @@ async function addMatch() {
 
     const totalPoint = r.score + umaPoint + yakuPoint;
 
-    /* ★ 履歴表示用フォーマット：素点 (合計) ★ */
     row[r.name] = `${r.score}（${totalPoint}）`;
   });
 
@@ -330,9 +307,6 @@ async function addMatch() {
   showHistory();
 }
 
-/* ------------------------------
-   対局修正
------------------------------- */
 function editMatch(index) {
   editingMatchIndex = index;
 
@@ -344,20 +318,14 @@ function editMatch(index) {
     if (!r) return;
 
     const score = r.match(/^(-?\d+)/)[1];
-    const total = r.match(/（(-?\d+)）/)[1];
 
     document.getElementById("score_" + name).value = score;
-
-    /* yakuman は履歴に含まれないので 0 に戻す */
     document.getElementById("yakuman_" + name).value = 0;
   });
 
   updateBtn.style.display = "block";
 }
 
-/* ------------------------------
-   対局更新
------------------------------- */
 function updateMatch() {
   if (editingMatchIndex === null) return;
 
@@ -428,9 +396,6 @@ function updateMatch() {
   showHistory();
 }
 
-/* ------------------------------
-   履歴表示（時間削除済み）
------------------------------- */
 function showHistory() {
   const players = todayData.players;
 
@@ -450,7 +415,7 @@ function showHistory() {
       tr += `<td>${r ? r : "－－"}</td>`;
     });
 
-    tr += `<td><button onclick="editMatch(${index})">修正</button></td>`;
+    tr += `<td><button onclick="editMatch(${index})" style="font-size:20px; padding:8px 12px; width:auto;">修正</button></td>`;
 
     historyBody.innerHTML += "<tr>" + tr + "</tr>";
   });
