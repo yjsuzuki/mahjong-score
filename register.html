@@ -87,8 +87,6 @@
 
 <h1 style="color:red; text-align:center; font-size:26px;">麻雀 成績管理</h1>
 
-<h2 id="dateTitle" style="font-size:22px;"></h2>
-
 <h2 style="font-size:22px;">プレイヤー登録（人数無制限）</h2>
 <input id="playerName" placeholder="プレイヤー名を入力">
 <button onclick="addPlayer()">プレイヤー追加</button>
@@ -152,11 +150,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let todayData = null;
-let date = null;
 let editingMatchIndex = null;
 
 /* ------------------------------
-   Firestore 読み込み
+   register.html 読み込み（新規は空）
 ------------------------------ */
 window.onload = async () => {
   const params = new URLSearchParams(location.search);
@@ -164,31 +161,17 @@ window.onload = async () => {
   const paramDate = params.get("date");
 
   if (isNew) {
-    const baseDate = new Date().toISOString().split("T")[0];
-
-    // 同じ日のドキュメント数を確認
-    const snap = await db.collection("mahjong-history")
-      .where("date", ">=", baseDate)
-      .where("date", "<=", baseDate + "_999")
-      .get();
-
-    const suffix = snap.size === 0 ? "" : "_" + snap.size;
-    date = baseDate + suffix;
-
     todayData = {
-      date,
+      date: null,
       players: [],
       matches: [],
-      timestamp: new Date()
+      timestamp: null
     };
 
   } else {
-    date = paramDate;
-    const doc = await db.collection("mahjong-history").doc(date).get();
+    const doc = await db.collection("mahjong-history").doc(paramDate).get();
     todayData = doc.data();
   }
-
-  document.getElementById("dateTitle").innerText = date + " の対局";
 
   updatePlayerList();
   updateScoreInputs();
@@ -196,7 +179,7 @@ window.onload = async () => {
 };
 
 /* ------------------------------
-   プレイヤー追加（人数無制限）
+   プレイヤー追加
 ------------------------------ */
 function addPlayer() {
   const name = document.getElementById("playerName").value.trim();
@@ -278,9 +261,21 @@ function validateFourPlayers(scores) {
 }
 
 /* ------------------------------
-   対局登録
+   対局登録（初めて保存）
 ------------------------------ */
-function addMatch() {
+async function addMatch() {
+
+  // 初回登録時に日付を決める
+  if (!todayData.date) {
+    const baseDate = new Date().toISOString().split("T")[0];
+
+    const snap = await db.collection("mahjong-history").get();
+    const sameDayDocs = snap.docs.filter(doc => doc.id.startsWith(baseDate));
+    const suffix = sameDayDocs.length === 0 ? "" : "_" + sameDayDocs.length;
+
+    todayData.date = baseDate + suffix;
+  }
+
   const uma = [
     Number(uma1.value),
     Number(uma2.value),
@@ -341,7 +336,9 @@ function addMatch() {
     time: new Date().toLocaleString()
   });
 
-  saveToFirestore();
+  todayData.timestamp = new Date();
+  db.collection("mahjong-history").doc(todayData.date).set(todayData);
+
   alert("登録しました");
   showHistory();
 }
@@ -441,22 +438,15 @@ function updateMatch() {
   todayData.matches[editingMatchIndex].row = row;
   todayData.matches[editingMatchIndex].time = new Date().toLocaleString();
 
-  saveToFirestore();
+  todayData.timestamp = new Date();
+  db.collection("mahjong-history").doc(todayData.date).set(todayData);
+
   alert("更新しました");
 
   editingMatchIndex = null;
   updateBtn.style.display = "none";
 
   showHistory();
-}
-
-/* ------------------------------
-   Firestore 保存
------------------------------- */
-function saveToFirestore() {
-  todayData.timestamp = new Date();
-
-  db.collection("mahjong-history").doc(date).set(todayData);
 }
 
 /* ------------------------------
