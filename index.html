@@ -36,7 +36,6 @@
     background:#d4b75a;
   }
 
-  /* 初期化ボタン（赤） */
   .dangerBtn {
     background:#cc4444;
     color:white;
@@ -97,7 +96,6 @@
 
 <hr style="margin:25px 0;">
 
-<!-- ★ 一番下に初期化ボタン（パスワード付き） ★ -->
 <button class="dangerBtn" onclick="resetAll()">全データ初期化（完全削除）</button>
 
 <script>
@@ -105,12 +103,30 @@ function createNew() {
   location.href = "register.html?new=1";
 }
 
-window.onload = () => {
-  const history = JSON.parse(localStorage.getItem("history") || "[]");
+/* ------------------------------
+   Firestore から全データ読み込み
+------------------------------ */
+function loadAllFromFirestore() {
+  db.collection("mahjong-history")
+    .orderBy("timestamp", "desc")
+    .get()
+    .then(snapshot => {
+      const history = [];
+      snapshot.forEach(doc => history.push(doc.data()));
+      renderAll(history);
+    });
+}
 
-  /* ------------------------------
-     総合成績一覧（上に表示）
-  ------------------------------ */
+window.onload = () => {
+  loadAllFromFirestore();
+};
+
+/* ------------------------------
+   Firestoreデータを画面に描画
+------------------------------ */
+function renderAll(history) {
+
+  /* 総合成績一覧 */
   let totals = {};
 
   history.forEach(day => {
@@ -158,10 +174,9 @@ window.onload = () => {
     resultContainer.innerHTML = html;
   }
 
-  /* ------------------------------
-     過去の対局一覧（下に表示）
-  ------------------------------ */
+  /* 過去の対局一覧 */
   const list = document.getElementById("historyList");
+  list.innerHTML = "";
 
   if (history.length === 0) {
     list.innerHTML = "<p style='font-size:20px;'>まだ対局がありません</p>";
@@ -181,31 +196,51 @@ window.onload = () => {
 
     list.appendChild(div);
   });
-};
+}
 
 function openHistory(date) {
   location.href = "register.html?date=" + date;
 }
 
 /* ------------------------------
-   ★ 全データ初期化（パスワード付き）
+   Firestore 全削除
 ------------------------------ */
 function resetAll() {
   const pw = prompt("初期化パスワードを入力してください");
-
-  if (pw === null) return; // キャンセル
+  if (pw === null) return;
 
   if (pw !== "yjsuzuki") {
     alert("パスワードが違います");
     return;
   }
 
-  if (!confirm("本当に全データを削除しますか？\n（元に戻せません）")) return;
+  if (!confirm("本当に全データを削除しますか？")) return;
 
-  localStorage.removeItem("history");
-  alert("全データを削除しました");
+  db.collection("mahjong-history").get().then(snapshot => {
+    snapshot.forEach(doc => doc.ref.delete());
+  });
+
+  alert("クラウドの全データを削除しました");
   location.reload();
 }
+</script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDc6f_NEYzJ4kKrkLEfWyGc6Ou3yb7ZTk",
+    authDomain: "mahjong-score-85942.firebaseapp.com",
+    projectId: "mahjong-score-85942",
+    storageBucket: "mahjong-score-85942.firebasestorage.app",
+    messagingSenderId: "524280113731",
+    appId: "1:524280113731:web:32d9368f9c9e58fb9802f6"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 </script>
 
 </body>
