@@ -104,15 +104,22 @@ function createNew() {
 }
 
 /* ------------------------------
-   Firestore から全データ読み込み
+   Firestore から全データ読み込み（修正版）
 ------------------------------ */
 function loadAllFromFirestore() {
   db.collection("mahjong-history")
-    .orderBy("timestamp", "desc")
     .get()
     .then(snapshot => {
       const history = [];
       snapshot.forEach(doc => history.push(doc.data()));
+
+      // timestamp が Date でも string でもソートできるようにする
+      history.sort((a, b) => {
+        const ta = new Date(a.timestamp);
+        const tb = new Date(b.timestamp);
+        return tb - ta;
+      });
+
       renderAll(history);
     });
 }
