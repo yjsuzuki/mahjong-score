@@ -59,6 +59,13 @@
     font-size:36px;
     color:yellow;
   }
+
+  .clickable {
+    cursor:pointer;
+    color:#f5d76e;
+    font-size:40px;
+    font-weight:bold;
+  }
 </style>
 </head>
 <body>
@@ -83,7 +90,7 @@
 
 <hr>
 
-<!-- ★ 見出しを横並びにし、役満祝儀を右へ移動 ★ -->
+<!-- ★ 見出しを横並びにし、役満祝儀を右へ移動（入力ボックスと左端一致） ★ -->
 <div style="display:flex; gap:200px; align-items:center;">
   <h2 style="font-size:40px;">ウマ</h2>
   <h2 style="font-size:40px; margin-left:40px;">役満祝儀</h2>
@@ -135,7 +142,6 @@
 <h2 style="font-size:44px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -231,7 +237,7 @@ function updateScoreInputs() {
 }
 
 /* ------------------------------
-   参加者4人チェック（素点入力者が参加扱い）
+   参加者4人チェック
 ------------------------------ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
@@ -249,7 +255,7 @@ function validateFourPlayers(scores) {
 }
 
 /* ------------------------------
-   対局登録（登録した日の YYYY-MM-DD を使う）
+   対局登録
 ------------------------------ */
 async function addMatch() {
 
@@ -314,7 +320,6 @@ async function addMatch() {
 
     const totalPoint = r.score + umaPoint + yakuPoint;
 
-    /* ★ 履歴表示用フォーマット：素点（合計） ★ */
     row[r.name] = `${r.score}（${totalPoint}）`;
   });
 
@@ -426,7 +431,7 @@ function updateMatch() {
 }
 
 /* ------------------------------
-   履歴表示（役満回数なし・修正ボタン小さく）
+   履歴表示（役満回数なし・修正ボタン削除）
 ------------------------------ */
 function showHistory() {
   const players = todayData.players;
@@ -435,19 +440,16 @@ function showHistory() {
   players.forEach(name => {
     historyHeader.innerHTML += `<th>${name}</th>`;
   });
-  historyHeader.innerHTML += "<th>修正</th>";
 
   historyBody.innerHTML = "";
 
   todayData.matches.forEach((h, index) => {
-    let tr = `<td>${h.match}</td>`;
+    let tr = `<td class="clickable" onclick="editMatch(${index})">${h.match}</td>`;
 
     players.forEach(name => {
       const r = h.row[name];
       tr += `<td>${r ? r : "－－"}</td>`;
     });
-
-    tr += `<td><button onclick="editMatch(${index})" style="font-size:20px; padding:6px 10px; width:auto;">修正</button></td>`;
 
     historyBody.innerHTML += "<tr>" + tr + "</tr>";
   });
