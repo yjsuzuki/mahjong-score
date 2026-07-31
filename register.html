@@ -8,32 +8,32 @@
     font-family:"Yu Gothic";
     background:#111;
     color:#f5d76e;
-    padding:15px;
-    font-size:22px;
+    padding:20px;
+    font-size:26px;
   }
 
   input {
-    padding:14px;
-    margin:8px 0;
+    padding:22px;
+    margin:10px 0;
     background:#222;
     color:#f5d76e;
     border:2px solid #bfa14a;
-    border-radius:10px;
-    font-size:22px;
+    border-radius:14px;
+    font-size:30px;
     box-sizing:border-box;
   }
 
   button {
-    padding:18px;
-    margin:12px 0;
+    padding:24px;
+    margin:16px 0;
     background:#bfa14a;
     color:#111;
     border:none;
     font-weight:bold;
     cursor:pointer;
-    border-radius:10px;
+    border-radius:14px;
     width:100%;
-    font-size:26px;
+    font-size:32px;
   }
 
   button:hover { background:#d4b75a; }
@@ -43,12 +43,12 @@
     width:100%;
     background:#222;
     margin-top:20px;
-    font-size:20px;
+    font-size:24px;
   }
 
   th,td {
     border:1px solid #555;
-    padding:12px;
+    padding:16px;
     text-align:center;
   }
 
@@ -58,24 +58,12 @@
     display:inline-block;
     margin-right:12px;
     margin-bottom:8px;
-    font-size:26px;
+    font-size:30px;
     color:yellow;
   }
 
-  #historyTable {
-    overflow-x:auto;
-    display:block;
-    white-space:nowrap;
-  }
-
-  .absentLabel {
-    font-size:22px;
-    margin-left:10px;
-  }
-
   .absentLabel input {
-    transform:scale(1.4);
-    margin-right:4px;
+    transform:scale(1.8);
   }
 </style>
 </head>
@@ -85,40 +73,39 @@
   トップ画面に戻る
 </button>
 
-<h1 style="color:red; text-align:center; font-size:30px;">麻雀 成績管理</h1>
+<h1 style="color:red; text-align:center; font-size:36px;">麻雀 成績管理</h1>
 
-<h2 style="font-size:26px;">プレイヤー登録（人数無制限）</h2>
+<h2 style="font-size:30px;">プレイヤー登録（人数無制限）</h2>
 
-<!-- プレイヤー名入力＋追加ボタン横並び -->
-<div style="display:flex; gap:10px; align-items:center;">
+<div style="display:flex; gap:14px; align-items:center;">
   <input id="playerName" placeholder="プレイヤー名を入力" style="flex:2;">
   <button onclick="addPlayer()" style="flex:1; min-width:120px;">
     追加
   </button>
 </div>
 
-<h3 style="font-size:24px;">登録済みプレイヤー</h3>
+<h3 style="font-size:28px;">登録済みプレイヤー</h3>
 <div id="playerList"></div>
 
 <hr>
 
-<h2 style="font-size:26px;">ウマ設定（4人対局固定）</h2>
+<h2 style="font-size:30px;">ウマ設定（4人対局固定）</h2>
 
-<div style="display:flex; gap:10px;">
+<div style="display:flex; gap:14px;">
   <input id="uma1" type="number" value="10" style="flex:1;">
   <input id="uma2" type="number" value="5" style="flex:1;">
   <input id="uma3" type="number" value="-5" style="flex:1;">
   <input id="uma4" type="number" value="-10" style="flex:1;">
 </div>
 
-<h2 style="font-size:26px;">役満祝儀設定（非達成者からのポイント）</h2>
-<div style="max-width:300px;">
+<h2 style="font-size:30px;">役満祝儀設定（非達成者からのポイント）</h2>
+<div style="max-width:340px;">
   <input id="yakumanBonus" type="number" value="5">
 </div>
 
 <hr>
 
-<h2 style="font-size:26px;">対局登録</h2>
+<h2 style="font-size:30px;">対局登録</h2>
 
 <div id="scoreInputs"></div>
 
@@ -129,7 +116,7 @@
 
 <hr>
 
-<h2 style="font-size:26px;">対局履歴</h2>
+<h2 style="font-size:30px;">対局履歴</h2>
 <div id="historyTable">
   <table>
     <thead>
@@ -141,7 +128,7 @@
 
 <hr>
 
-<h2 style="font-size:26px;">成績（合計）</h2>
+<h2 style="font-size:30px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
 <!-- Firebase -->
@@ -206,28 +193,36 @@ function updatePlayerList() {
   });
 }
 
-/* ★★★ 素点＋役満回数＋不参加を横並びにする ★★★ */
+/* ★★★ 不参加の表示条件＋素点と役満回数のレイアウト ★★★ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
 
+  const playerCount = todayData.players.length;
+
   todayData.players.forEach(name => {
+
+    const showAbsent = playerCount >= 5;  // 5人以上で表示
+
     scoreArea.innerHTML += `
-      <div style="margin-bottom:20px;">
+      <div style="margin-bottom:28px;">
 
-        <div style="display:flex; align-items:center; gap:10px;">
-          <strong style="font-size:26px;">${name}</strong>
+        <div style="display:flex; align-items:center; gap:18px;">
+          ${showAbsent ? `
+            <label class="absentLabel" style="gap:0;">
+              <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
+            </label>
+          ` : ``}
 
-          <label class="absentLabel">
-            <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
-            不参加
-          </label>
+          <strong style="font-size:32px;">${name}</strong>
         </div>
 
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <input type="number" id="score_${name}" placeholder="素点" style="width:120px;">
-          <span style="font-size:22px;">役満回数</span>
-          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:120px;">
+        <div style="display:flex; gap:50px; align-items:center; margin-top:18px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="width:200px;">
+
+          <span style="font-size:28px;">役満回数</span>
+
+          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:200px;">
         </div>
 
       </div>
@@ -236,7 +231,7 @@ function updateScoreInputs() {
 }
 
 function toggleAbsent(name) {
-  const absent = document.getElementById("absent_" + name).checked;
+  const absent = document.getElementById("absent_" + name)?.checked;
   const score = document.getElementById("score_" + name);
   const yaku = document.getElementById("yakuman_" + name);
 
@@ -251,7 +246,7 @@ function toggleAbsent(name) {
   }
 }
 
-/* 以降のロジックは変更なし（省略せず全文） */
+/* 以降のロジックは変更なし（全文） */
 
 function validateFourPlayers(scores) {
   scores.forEach(p => {
