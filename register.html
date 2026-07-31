@@ -2,209 +2,431 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>対局登録（麻雀）</title>
+<title>麻雀 成績管理（完全版）</title>
 <style>
-  body {
-    font-family:"Yu Gothic";
-    background:#111;
-    color:#f5d76e;
-    padding:20px;
-    font-size:20px;
-  }
-
-  h1 {
-    text-align:center;
-    color:#66cc66;
-    font-size:28px;
-    margin-bottom:25px;
-  }
-
-  input, select {
-    width:100%;
-    padding:12px;
-    margin:10px 0;
-    font-size:20px;
-    border-radius:8px;
-    border:none;
-  }
-
+  body { font-family:"Yu Gothic"; background:#111; color:#f5d76e; padding:20px; }
+  input { padding:6px; margin:5px; width:120px; background:#222; color:#f5d76e; border:1px solid #444; }
   button {
-    width:100%;
-    padding:15px;
-    margin:12px 0;
+    padding:8px 15px;
+    margin:5px;
     background:#bfa14a;
     color:#111;
     border:none;
     font-weight:bold;
-    font-size:22px;
-    border-radius:10px;
     cursor:pointer;
+    border-radius:6px;
   }
+  button:hover { background:#d4b75a; }
 
-  button:hover {
-    background:#d4b75a;
-  }
-
-  .dangerBtn {
-    background:#cc4444;
-    color:white;
-  }
-  .dangerBtn:hover {
-    background:#dd5555;
-  }
-
-  .matchBox {
-    background:#222;
-    padding:15px;
-    margin:15px 0;
-    border-radius:8px;
-    border:1px solid #444;
-  }
+  table { border-collapse:collapse; width:100%; background:#222; margin-top:20px; }
+  th,td { border:1px solid #555; padding:10px; text-align:center; }
+  th { background:#333; }
+  #playerList span { margin-right:20px; font-size:20px; color:yellow; }
 </style>
 </head>
 <body>
 
-<h1>対局登録</h1>
+<button onclick="location.href='index.html'" style="margin-bottom:20px;">
+  トップ画面に戻る
+</button>
 
-<div id="main"></div>
+<h1 style="color:red;">麻雀 成績管理（完全版）</h1>
 
-<button onclick="addMatch()">対局を追加する</button>
-<button onclick="saveAll()">保存する</button>
-<button class="dangerBtn" onclick="goHome()">戻る</button>
+<h2 id="dateTitle"></h2>
+
+<h2>プレイヤー登録（最大5人）</h2>
+<input id="playerName" placeholder="プレイヤー名">
+<button onclick="addPlayer()">追加</button>
+
+<h3>登録済みプレイヤー</h3>
+<div id="playerList"></div>
+
+<hr>
+
+<h2>ウマ設定（4人対局固定）</h2>
+1位 → <input id="uma1" type="number" value="10">
+2位 → <input id="uma2" type="number" value="5">
+3位 → <input id="uma3" type="number" value="-5">
+4位 → <input id="uma4" type="number" value="-10">
+
+<h2>役満祝儀設定</h2>
+役満達成者に対して未達成者が支払うポイント  
+→ <input id="yakumanBonus" type="number" value="5">
+
+<hr>
+
+<h2>対局登録（4人だけ参加可能）</h2>
+<div id="scoreInputs"></div>
+<button onclick="addMatch()">対局を登録する</button>
+<button id="updateBtn" onclick="updateMatch()" style="display:none; background:#66cc66;">更新する</button>
+
+<hr>
+
+<h2>対局履歴</h2>
+<table id="historyTable">
+  <thead>
+    <tr id="historyHeader"></tr>
+  </thead>
+  <tbody id="historyBody"></tbody>
+</table>
+
+<hr>
+
+<h2>成績（合計）</h2>
+<div id="totalContainer"></div>
 
 <script>
-let players = [];
-let matches = [];
-let dateKey = "";
+let history = [];
+let todayData = null;
+let date = null;
+let editingMatchIndex = null;
 
-/* ------------------------------
-   URLパラメータで新規 or 既存を判定
------------------------------- */
 window.onload = () => {
   const params = new URLSearchParams(location.search);
+  const isNew = params.get("new");
+  const paramDate = params.get("date");
 
-  if (params.get("new") === "1") {
-    // 新規作成
-    dateKey = new Date().toLocaleString();
-    players = ["A","B","C","D"]; // 初期値（後で変更可能）
-    matches = [];
-    render();
-  } else {
-    // 既存データ読み込み（Firestore）
-    dateKey = params.get("date");
-    loadFromFirestore(dateKey);
+  history = JSON.parse(localStorage.getItem("history") || "[]");
+
+  if (isNew) {
+    const baseDate = new Date().toISOString().split("T")[0];
+    const sameDates = history.filter(h => h.date.startsWith(baseDate));
+    const suffix = sameDates.length === 0 ? "" : "_" + sameDates.length;
+
+    date = baseDate + suffix;
+
+    todayData = {
+      date: date,
+      players: [],
+      matches: []
+    };
+
+    history.push(todayData);
+    saveData();
   }
+  else {
+    date = paramDate;
+    todayData = history.find(h => h.date === date);
+  }
+
+  document.getElementById("dateTitle").innerText = date + " の対局";
+
+  updatePlayerList();
+  updateScoreInputs();
+  showHistory();
 };
 
-/* ------------------------------
-   Firestore から読み込み
------------------------------- */
-function loadFromFirestore(dateKey) {
-  db.collection("mahjong-history")
-    .doc(dateKey)
-    .get()
-    .then(doc => {
-      if (!doc.exists) {
-        alert("データが見つかりません");
-        return;
-      }
-      const data = doc.data();
-      players = data.players;
-      matches = data.matches;
-      render();
-    });
+function saveData() {
+  localStorage.setItem("history", JSON.stringify(history));
 }
 
-/* ------------------------------
-   画面描画
------------------------------- */
-function render() {
-  const main = document.getElementById("main");
-  main.innerHTML = `
-    <h2 style="font-size:24px;">日付: ${dateKey}</h2>
-    <label>プレイヤー（カンマ区切り）</label>
-    <input id="playerInput" value="${players.join(",")}">
-  `;
+function addPlayer() {
+  const name = playerName.value.trim();
+  if (!name) return;
 
-  matches.forEach((m, idx) => {
-    main.innerHTML += `
-      <div class="matchBox">
-        <strong style="font-size:22px;">${idx+1} 回戦</strong><br><br>
-        ${players.map(p => `
-          <label>${p}</label>
-          <input id="m${idx}_${p}" value="${m.row[p] || ""}">
-        `).join("")}
+  if (todayData.players.length >= 5) {
+    alert("参加できるのは最大5人までです");
+    return;
+  }
+
+  todayData.players.push(name);
+  saveData();
+  playerName.value = "";
+  updatePlayerList();
+  updateScoreInputs();
+}
+
+function updatePlayerList() {
+  playerList.innerHTML = "";
+  todayData.players.forEach(name => {
+    playerList.innerHTML += `<span>${name}</span>`;
+  });
+}
+
+function updateScoreInputs() {
+  scoreInputs.innerHTML = "";
+  todayData.players.forEach(name => {
+    scoreInputs.innerHTML += `
+      <div>
+        ${name}：
+        <input type="number" id="score_${name}" placeholder="素点">
+        役満<input type="number" id="yakuman_${name}" value="0" min="0" style="width:60px;">
+        <label style="margin-left:20px;">
+          <input type="checkbox" id="absent_${name}" onchange="toggleAbsent('${name}')">
+          不参加
+        </label>
       </div>
     `;
   });
 }
 
-/* ------------------------------
-   対局追加
------------------------------- */
-function addMatch() {
-  players = document.getElementById("playerInput").value.split(",").map(x => x.trim());
-  matches.push({ row:{} });
-  render();
+/* ★ 不参加チェックで入力欄をクリア＆無効化 ★ */
+function toggleAbsent(name) {
+  const absent = document.getElementById("absent_" + name).checked;
+  const score = document.getElementById("score_" + name);
+  const yaku = document.getElementById("yakuman_" + name);
+
+  if (absent) {
+    score.value = "";
+    yaku.value = 0;
+    score.disabled = true;
+    yaku.disabled = true;
+  } else {
+    score.disabled = false;
+    yaku.disabled = false;
+  }
 }
 
-/* ------------------------------
-   Firestore に保存
------------------------------- */
-function saveAll() {
-  players = document.getElementById("playerInput").value.split(",").map(x => x.trim());
+/* ★★★★★ 不参加チェック対応の4人判定 ★★★★★ */
+function validateFourPlayers(scores) {
 
-  // 入力値を matches に反映
-  matches.forEach((m, idx) => {
-    m.row = {};
-    players.forEach(p => {
-      const v = document.getElementById(`m${idx}_${p}`).value;
-      m.row[p] = v;
+  scores.forEach(p => {
+    p.score = p.score.replace(/[\s　]+/g, "");
+  });
+
+  const active = scores.filter(p => {
+    const absent = document.getElementById("absent_" + p.name).checked;
+    if (absent) return false;
+    return p.score !== "" && !isNaN(Number(p.score));
+  });
+
+  if (active.length !== 4) {
+    alert("参加者は必ず4人です（不参加チェックを使って4人にしてください）");
+    return null;
+  }
+
+  return active;
+}
+
+function addMatch() {
+  const uma = [
+    Number(uma1.value),
+    Number(uma2.value),
+    Number(uma3.value),
+    Number(uma4.value)
+  ];
+
+  const yakuBonus = Number(document.getElementById("yakumanBonus").value);
+
+  let scores = todayData.players.map(name => {
+    const scoreVal = document.getElementById("score_" + name).value;
+    const yakuVal = document.getElementById("yakuman_" + name).value;
+    return { name, score: scoreVal, yakuman: Number(yakuVal) };
+  });
+
+  const active = validateFourPlayers(scores);
+  if (!active) return;
+
+  const totalScore = active.reduce((sum, p) => sum + Number(p.score), 0);
+  if (totalScore !== 0) {
+    alert("合計が0ではありません");
+    return;
+  }
+
+  let ranked = active.map(p => ({
+    name:p.name,
+    score:Number(p.score),
+    yakuman:p.yakuman
+  }));
+
+  ranked.sort((a,b) => b.score - a.score);
+
+  let row = {};
+
+  const yakumanPlayers = ranked.filter(r => r.yakuman > 0);
+  const nonYakumanPlayers = ranked.filter(r => r.yakuman === 0);
+
+  ranked.forEach((r, i) => {
+    const umaPoint = uma[i] || 0;
+    let yakuPoint = 0;
+
+    if (r.yakuman > 0) {
+      yakuPoint = yakuBonus * nonYakumanPlayers.length;
+    } else {
+      yakuPoint = -yakuBonus * yakumanPlayers.length;
+    }
+
+    const totalPoint = r.score + umaPoint + yakuPoint;
+
+    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+  });
+
+  todayData.matches.push({
+    match: todayData.matches.length + 1,
+    row: row,
+    time: new Date().toLocaleString()
+  });
+
+  saveData();
+  alert("登録しました");
+  showHistory();
+}
+
+function editMatch(index) {
+  editingMatchIndex = index;
+
+  const match = todayData.matches[index];
+
+  todayData.players.forEach(name => {
+    const r = match.row[name];
+    const absentBox = document.getElementById("absent_" + name);
+
+    if (!r) {
+      absentBox.checked = true;
+      toggleAbsent(name);
+      return;
+    }
+
+    const score = r.match(/^(-?\d+)/)[1];
+    const yakuman = r.match(/役満:(\d+)/)[1];
+
+    document.getElementById("score_" + name).value = score;
+    document.getElementById("yakuman_" + name).value = yakuman;
+
+    absentBox.checked = false;
+    toggleAbsent(name);
+  });
+
+  document.getElementById("updateBtn").style.display = "inline-block";
+}
+
+function updateMatch() {
+  if (editingMatchIndex === null) return;
+
+  const uma = [
+    Number(uma1.value),
+    Number(uma2.value),
+    Number(uma3.value),
+    Number(uma4.value)
+  ];
+
+  const yakuBonus = Number(document.getElementById("yakumanBonus").value);
+
+  let scores = todayData.players.map(name => {
+    const scoreVal = document.getElementById("score_" + name).value;
+    const yakuVal = document.getElementById("yakuman_" + name).value;
+    return { name, score: scoreVal, yakuman: Number(yakuVal) };
+  });
+
+  const active = validateFourPlayers(scores);
+  if (!active) return;
+
+  const totalScore = active.reduce((sum, p) => sum + Number(p.score), 0);
+  if (totalScore !== 0) {
+    alert("合計が0ではありません");
+    return;
+  }
+
+  let ranked = active.map(p => ({
+    name:p.name,
+    score:Number(p.score),
+    yakuman:p.yakuman
+  }));
+
+  ranked.sort((a,b) => b.score - a.score);
+
+  let row = {};
+
+  const yakumanPlayers = ranked.filter(r => r.yakuman > 0);
+  const nonYakumanPlayers = ranked.filter(r => r.yakuman === 0);
+
+  ranked.forEach((r, i) => {
+    const umaPoint = uma[i] || 0;
+    let yakuPoint = 0;
+
+    if (r.yakuman > 0) {
+      yakuPoint = yakuBonus * nonYakumanPlayers.length;
+    } else {
+      yakuPoint = -yakuBonus * yakumanPlayers.length;
+    }
+
+    const totalPoint = r.score + umaPoint + yakuPoint;
+
+    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+  });
+
+  todayData.matches[editingMatchIndex].row = row;
+  todayData.matches[editingMatchIndex].time = new Date().toLocaleString();
+
+  saveData();
+  alert("更新しました");
+
+  editingMatchIndex = null;
+  document.getElementById("updateBtn").style.display = "none";
+
+  showHistory();
+}
+
+function showHistory() {
+  const players = todayData.players;
+
+  historyHeader.innerHTML = "<th>対局</th>";
+  players.forEach(name => {
+    historyHeader.innerHTML += `<th>${name}</th>`;
+  });
+  historyHeader.innerHTML += "<th>時間</th><th>修正</th>";
+
+  const tbody = document.getElementById("historyBody");
+  tbody.innerHTML = "";
+
+  todayData.matches.forEach((h, index) => {
+    let tr = `<td>${h.match}</td>`;
+
+    players.forEach(name => {
+      const r = h.row[name];
+      tr += `<td>${r ? r : "－－"}</td>`;
+    });
+
+    tr += `<td>${h.time}</td>`;
+    tr += `<td><button onclick="editMatch(${index})">修正</button></td>`;
+
+    tbody.innerHTML += "<tr>" + tr + "</tr>";
+  });
+
+  let totals = {};
+
+  todayData.matches.forEach(h => {
+    players.forEach(name => {
+      const r = h.row[name];
+      if (!r) return;
+
+      const match = r.match(/[（(]([-0-9]+)[）)]/);
+      const point = match ? Number(match[1]) : 0;
+
+      totals[name] = (totals[name] || 0) + point;
     });
   });
 
-  // Firestore に保存
-  db.collection("mahjong-history")
-    .doc(dateKey)
-    .set({
-      date: dateKey,
-      players: players,
-      matches: matches,
-      timestamp: new Date()
-    })
-    .then(() => {
-      alert("保存しました（クラウド）");
-      goHome();
-    })
-    .catch(err => {
-      alert("保存エラー: " + err);
-    });
+  const ranking = Object.entries(totals)
+    .map(([name, total]) => ({ name, total }))
+    .sort((a,b) => b.total - a.total);
+
+  const container = document.getElementById("totalContainer");
+  container.innerHTML = `
+    <table border="1" style="width:100%; background:#222; color:#f5d76e;">
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>プレイヤー</th>
+          <th>ポイント</th>
+        </tr>
+      </thead>
+      <tbody id="forceTotalBody"></tbody>
+    </table>
+  `;
+
+  const tbody2 = document.getElementById("forceTotalBody");
+  tbody2.innerHTML = "";
+
+  ranking.forEach((p,i) => {
+    tbody2.innerHTML += `
+      <tr>
+        <td>${i+1}</td>
+        <td>${p.name}</td>
+        <td>${p.total}</td>
+      </tr>`;
+  });
 }
-
-/* ------------------------------
-   戻る
------------------------------- */
-function goHome() {
-  location.href = "index.html";
-}
-</script>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDc6f_NEYzJ4kKrkLEfWyGc6Ou3yb7ZTk",
-    authDomain: "mahjong-score-85942.firebaseapp.com",
-    projectId: "mahjong-score-85942",
-    storageBucket: "mahjong-score-85942.firebasestorage.app",
-    messagingSenderId: "524280113731",
-    appId: "1:524280113731:web:32d9368f9c9e58fb9802f6"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
 </script>
 
 </body>
