@@ -316,7 +316,7 @@ function addYakuman() {
 }
 
 /* ------------------------------
-   Firestore 全削除
+   Firestore 全削除（完全版）
 ------------------------------ */
 function resetAll() {
   const pw = prompt("初期化パスワードを入力してください");
@@ -329,16 +329,22 @@ function resetAll() {
 
   if (!confirm("本当に全データを削除しますか？")) return;
 
-  db.collection("mahjong-history").get().then(snapshot => {
-    snapshot.forEach(doc => doc.ref.delete());
+  const p1 = db.collection("mahjong-history").get().then(snapshot => {
+    const deletes = [];
+    snapshot.forEach(doc => deletes.push(doc.ref.delete()));
+    return Promise.all(deletes);
   });
 
-  db.collection("yakuman-achievements").get().then(snapshot => {
-    snapshot.forEach(doc => doc.ref.delete());
+  const p2 = db.collection("yakuman-achievements").get().then(snapshot => {
+    const deletes = [];
+    snapshot.forEach(doc => deletes.push(doc.ref.delete()));
+    return Promise.all(deletes);
   });
 
-  alert("クラウドの全データを削除しました");
-  location.reload();
+  Promise.all([p1, p2]).then(() => {
+    alert("クラウドの全データを削除しました");
+    location.reload();
+  });
 }
 </script>
 
