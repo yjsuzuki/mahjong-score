@@ -44,7 +44,16 @@
     background:#d4b75a;
   }
 
-  /* ★ 全データ初期化ボタン（固定しない・小さく） */
+  .smallBtn {
+    width:auto;
+    padding:10px 16px;
+    font-size:24px;
+    background:#bfa14a;
+    color:#111;
+    border-radius:10px;
+    margin-left:20px;
+  }
+
   #resetBtn {
     width:auto;
     padding:12px 18px;
@@ -59,7 +68,6 @@
     background:#dd5555;
   }
 
-  /* ★★★ 過去の対局一覧：3列＋小さく詰める ★★★ */
   #historyList {
     display:grid;
     grid-template-columns: repeat(3, 1fr);
@@ -89,7 +97,6 @@
     border-radius:10px;
   }
 
-  /* ★★★ 総合成績一覧（崩れ防止） ★★★ */
   #resultContainer table {
     width:100%;
     background:#222;
@@ -109,7 +116,6 @@
     background:#333;
   }
 
-  /* ★ 役満達成者一覧（コンパクト） */
   #yakumanList {
     background:#222;
     padding:12px;
@@ -123,14 +129,19 @@
     margin-bottom:10px;
   }
 
-  /* 役満登録ボタン（横に小さく） */
-  #addYakumanSmallBtn {
-    background:#bfa14a;
-    font-size:24px;
-    padding:10px 16px;
+  /* ★ プレイヤー一覧（かなり小さく） */
+  #playerList {
+    background:#222;
+    padding:8px;
     border-radius:10px;
-    width:auto;
-    margin-left:20px;
+    border:2px solid #444;
+    font-size:18px;
+    margin-top:20px;
+    line-height:1.2;
+  }
+
+  #playerList div {
+    margin-bottom:6px;
   }
 </style>
 </head>
@@ -154,12 +165,17 @@
 
 <h2>
   役満達成者一覧
-  <button id="addYakumanSmallBtn" onclick="addYakuman()">登録</button>
+  <button class="smallBtn" onclick="addYakuman()">登録</button>
 </h2>
-
 <div id="yakumanList"></div>
 
-<!-- ★ 一番下に小さく配置 -->
+<!-- ★ 役満達成者一覧の下にプレイヤー一覧 -->
+<h2 style="font-size:30px;">
+  プレイヤー一覧
+  <button class="smallBtn" style="font-size:20px;" onclick="addPlayer()">登録</button>
+</h2>
+<div id="playerList"></div>
+
 <button id="resetBtn" onclick="resetAll()">全データ初期化</button>
 
 <script>
@@ -167,25 +183,36 @@ function createNew() {
   location.href = "register.html?new=1";
 }
 
-/* ------------------------------
-   Firestore から全データ読み込み
------------------------------- */
 function loadAllFromFirestore() {
+
+  /* プレイヤー一覧 */
+  db.collection("players")
+    .get()
+    .then(snapshot => {
+      const list = document.getElementById("playerList");
+      list.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        list.innerHTML += `
+          <div>${d.name}</div>
+        `;
+      });
+    });
+
+  /* 対局履歴 */
   db.collection("mahjong-history")
     .get()
     .then(snapshot => {
       const history = [];
       snapshot.forEach(doc => history.push(doc.data()));
 
-      history.sort((a, b) => {
-        const ta = new Date(a.timestamp);
-        const tb = new Date(b.timestamp);
-        return tb - ta;
-      });
+      history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       renderAll(history);
     });
 
+  /* 役満一覧 */
   db.collection("yakuman-achievements")
     .get()
     .then(snapshot => {
@@ -208,9 +235,46 @@ window.onload = () => {
   loadAllFromFirestore();
 };
 
-/* ------------------------------
-   Firestoreデータを画面に描画
------------------------------- */
+function addPlayer() {
+  const name = prompt("プレイヤー名を入力");
+  if (!name) return;
+
+  const d = new Date();
+  const dateStr =
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  db.collection("players").add({
+    name,
+    date: dateStr,
+    timestamp: new Date()
+  });
+
+  alert("登録しました");
+  loadAllFromFirestore();
+}
+
+function addYakuman() {
+  const name = prompt("役満達成者の名前を入力");
+  if (!name) return;
+
+  const yaku = prompt("役名を入力（例：四暗刻、国士無双など）");
+  if (!yaku) return;
+
+  const d = new Date();
+  const dateStr =
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  db.collection("yakuman-achievements").add({
+    name,
+    yaku,
+    date: dateStr,
+    timestamp: new Date()
+  });
+
+  alert("登録しました");
+  loadAllFromFirestore();
+}
+
 function renderAll(history) {
 
   let totals = {};
@@ -290,34 +354,6 @@ function openHistory(date) {
   location.href = "register.html?date=" + date;
 }
 
-/* ------------------------------
-   役満達成者追加（小ボタン）
------------------------------- */
-function addYakuman() {
-  const name = prompt("役満達成者の名前を入力");
-  if (!name) return;
-
-  const yaku = prompt("役名を入力（例：四暗刻、国士無双など）");
-  if (!yaku) return;
-
-  const d = new Date();
-  const dateStr =
-    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-
-  db.collection("yakuman-achievements").add({
-    name,
-    yaku,
-    date: dateStr,
-    timestamp: new Date()
-  });
-
-  alert("登録しました");
-  loadAllFromFirestore();
-}
-
-/* ------------------------------
-   Firestore 全削除（完全版）
------------------------------- */
 function resetAll() {
   const pw = prompt("初期化パスワードを入力してください");
   if (pw === null) return;
@@ -341,7 +377,13 @@ function resetAll() {
     return Promise.all(deletes);
   });
 
-  Promise.all([p1, p2]).then(() => {
+  const p3 = db.collection("players").get().then(snapshot => {
+    const deletes = [];
+    snapshot.forEach(doc => deletes.push(doc.ref.delete()));
+    return Promise.all(deletes);
+  });
+
+  Promise.all([p1, p2, p3]).then(() => {
     alert("クラウドの全データを削除しました");
     location.reload();
   });

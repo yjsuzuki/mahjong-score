@@ -12,7 +12,7 @@
     font-size:32px;
   }
 
-  input {
+  select, input {
     padding:26px;
     margin:12px 0;
     background:#222;
@@ -52,56 +52,54 @@
 
   th { background:#333; }
 
-  #playerList span {
-    display:inline-block;
-    margin-right:16px;
-    margin-bottom:12px;
-    font-size:36px;
-    color:yellow;
-  }
-
   .clickable {
     cursor:pointer;
     color:#f5d76e;
     font-size:40px;
     font-weight:bold;
   }
+
+  #selectedPlayers span {
+    display:inline-block;
+    margin-right:20px;
+    font-size:36px;
+    color:yellow;
+  }
 </style>
 </head>
 <body>
 
-<button onclick="location.href='index.html?date=' + todayData.date">
+<button onclick="location.href='index.html'">
   トップ画面に戻る
 </button>
 
 <h1 style="color:red; text-align:center; font-size:44px;">麻雀 成績管理</h1>
 
-<h2 style="font-size:40px;">プレイヤー登録（人数無制限）</h2>
+<!-- ★ プレイヤー選択（プルダウン1つ＋追加ボタン） -->
+<h2 style="font-size:40px;">プレイヤー選択（最大4人）</h2>
 
 <div style="display:flex; gap:18px; align-items:center;">
-  <input id="playerName" placeholder="プレイヤー名を入力" style="flex:2;">
-  <button onclick="addPlayer()" style="flex:1; min-width:140px;">
+  <select id="playerSelect" style="flex:2;">
+    <option value="">選択してください</option>
+  </select>
+
+  <button onclick="addSelectedPlayer()" style="flex:1; min-width:140px;">
     追加
   </button>
 </div>
 
-<h3 style="font-size:38px;">登録済みプレイヤー</h3>
-<div id="playerList"></div>
+<h3 style="font-size:38px;">選択済みプレイヤー</h3>
+<div id="selectedPlayers"></div>
 
 <hr>
 
-<!-- ★ 見出しを横並びにし、役満祝儀を右へ移動（入力ボックスと左端一致） ★ -->
+<!-- ウマ・役満祝儀 -->
 <div style="display:flex; gap:300px; align-items:center;">
   <h2 style="font-size:40px;">ウマ</h2>
-
-  <!-- ★ 雄二さん指定：margin-left:330px ★ -->
   <h2 style="font-size:40px; margin-left:330px;">役満祝儀</h2>
 </div>
 
-<!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
 <div style="display:flex; gap:40px; align-items:center;">
-
-  <!-- ウマ4つ（横幅150px） -->
   <div style="display:flex; gap:14px;">
     <input id="uma1" type="number" value="10" style="width:150px;">
     <input id="uma2" type="number" value="5" style="width:150px;">
@@ -109,11 +107,9 @@
     <input id="uma4" type="number" value="-10" style="width:150px;">
   </div>
 
-  <!-- 役満祝儀（左端を見出しと完全一致） -->
   <div style="margin-left:30px;">
-    <input id="yakumanBonus" type="number" value="5" style="width:150px;" placeholder="役満祝儀">
+    <input id="yakumanBonus" type="number" value="5" style="width:150px;">
   </div>
-
 </div>
 
 <hr>
@@ -164,6 +160,7 @@
 <script>
 let todayData = null;
 let editingMatchIndex = null;
+let allPlayers = [];
 
 /* ------------------------------
    初期ロード
@@ -173,6 +170,17 @@ window.onload = async () => {
   const isNew = params.get("new");
   const paramDate = params.get("date");
 
+  /* Firestore からプレイヤー一覧取得 */
+  const snapPlayers = await db.collection("players").get();
+  allPlayers = snapPlayers.docs.map(doc => doc.data().name);
+
+  /* プルダウンに反映 */
+  const sel = document.getElementById("playerSelect");
+  allPlayers.forEach(p => {
+    sel.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+
+  /* 新規 or 既存データ読み込み */
   if (isNew) {
     todayData = {
       date: null,
@@ -185,30 +193,39 @@ window.onload = async () => {
     todayData = doc.data();
   }
 
-  updatePlayerList();
+  renderSelectedPlayers();
   updateScoreInputs();
   showHistory();
 };
 
 /* ------------------------------
-   プレイヤー追加
+   プレイヤー追加（プルダウン1つ）
 ------------------------------ */
-function addPlayer() {
-  const name = document.getElementById("playerName").value.trim();
-  if (!name) return;
+function addSelectedPlayer() {
+  const val = document.getElementById("playerSelect").value;
+  if (!val) {
+    alert("プレイヤーを選択してください");
+    return;
+  }
 
-  todayData.players.push(name);
-  document.getElementById("playerName").value = "";
-  updatePlayerList();
+  if (todayData.players.includes(val)) {
+    alert("同じプレイヤーは追加できません");
+    return;
+  }
+
+  if (todayData.players.length >= 4) {
+    alert("プレイヤーは最大4人です");
+    return;
+  }
+
+  todayData.players.push(val);
+  renderSelectedPlayers();
   updateScoreInputs();
 }
 
-function updatePlayerList() {
-  const list = document.getElementById("playerList");
-  list.innerHTML = "";
-  todayData.players.forEach(name => {
-    list.innerHTML += `<span>${name}</span>`;
-  });
+function renderSelectedPlayers() {
+  const area = document.getElementById("selectedPlayers");
+  area.innerHTML = todayData.players.map(p => `<span>${p}</span>`).join("");
 }
 
 /* ------------------------------
@@ -219,51 +236,32 @@ function updateScoreInputs() {
   scoreArea.innerHTML = "";
 
   todayData.players.forEach(name => {
-
     scoreArea.innerHTML += `
       <div style="margin-bottom:32px;">
-
         <strong style="font-size:42px;">${name}</strong>
-
         <div style="display:flex; gap:70px; align-items:center; margin-top:20px;">
           <input type="number" id="score_${name}" placeholder="素点" style="width:260px;">
-
           <span style="font-size:38px;">役満回数</span>
-
           <input type="number" id="yakuman_${name}" value="0" min="0" style="width:260px;">
         </div>
-
       </div>
     `;
   });
 }
 
 /* ------------------------------
-   参加者4人チェック
------------------------------- */
-function validateFourPlayers(scores) {
-  scores.forEach(p => {
-    p.score = p.score.replace(/[\s　]+/g, "");
-  });
-
-  const active = scores.filter(p => p.score !== "" && !isNaN(Number(p.score)));
-
-  if (active.length !== 4) {
-    alert("参加者は必ず4人です（素点を入力した4人が参加扱いになります）");
-    return null;
-  }
-
-  return active;
-}
-
-/* ------------------------------
-   対局登録（日本時間で日付を生成）
+   対局登録（既存ロジックそのまま）
 ------------------------------ */
 async function addMatch() {
 
-  if (!todayData.date) {
+  if (todayData.players.length !== 4) {
+    alert("プレイヤーを4人選択してください");
+    return;
+  }
 
-    /* ★ 日本時間で日付を生成（UTCズレ解消） ★ */
+  /* ▼ 以下は既存ロジックそのまま（プレイヤー名だけ置き換わる） */
+
+  if (!todayData.date) {
     const d = new Date();
     const baseDate =
       `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -351,7 +349,6 @@ function editMatch(index) {
 
   todayData.players.forEach(name => {
     const r = match.row[name];
-
     if (!r) return;
 
     const score = r.match(/^(-?\d+)/)[1];
@@ -437,7 +434,7 @@ function updateMatch() {
 }
 
 /* ------------------------------
-   履歴表示（役満回数なし・修正ボタン削除）
+   履歴表示
 ------------------------------ */
 function showHistory() {
   const players = todayData.players;
@@ -498,6 +495,24 @@ function showHistory() {
       </tbody>
     </table>
   `;
+}
+
+/* ------------------------------
+   参加者4人チェック
+------------------------------ */
+function validateFourPlayers(scores) {
+  scores.forEach(p => {
+    p.score = p.score.replace(/[\s　]+/g, "");
+  });
+
+  const active = scores.filter(p => p.score !== "" && !isNaN(Number(p.score)));
+
+  if (active.length !== 4) {
+    alert("参加者は必ず4人です（素点を入力した4人が参加扱いになります）");
+    return null;
+  }
+
+  return active;
 }
 </script>
 
