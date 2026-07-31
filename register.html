@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>麻雀 成績管理（スマホ最適化版）</title>
+<style>
+  body {
+    font-family:"Yu Gothic";
+    background:#111;
+    color:#f5d76e;
+    padding:15px;
+    font-size:18px;
+  }
+
+  input {
+    padding:10px;
+    margin:6px 0;
+    width:100%;
+    background:#222;
+    color:#f5d76e;
+    border:1px solid #444;
+    border-radius:6px;
+    font-size:18px;
+  }
+
+  button {
+    padding:12px;
+    margin:10px 0;
+    background:#bfa14a;
+    color:#111;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:8px;
+    width:100%;
+    font-size:20px;
+  }
+
+  button:hover { background:#d4b75a; }
+
+  table {
+    border-collapse:collapse;
+    width:100%;
+    background:#222;
+    margin-top:20px;
+    font-size:16px;
+  }
+
+  th,td {
+    border:1px solid #555;
+    padding:10px;
+    text-align:center;
+  }
+
+  th { background:#333; }
+
+  #playerList span {
+    display:inline-block;
+    margin-right:12px;
+    margin-bottom:8px;
+    font-size:20px;
+    color:yellow;
+  }
+
+  /* スマホで横スクロール可能にする */
+  #historyTable {
+    overflow-x:auto;
+    display:block;
+    white-space:nowrap;
+  }
+
+  /* 不参加チェックの間隔を最小に */
+  .absentLabel {
+    margin-left:6px;
+    font-size:18px;
+  }
+
+  .absentLabel input {
+    width:auto;
+    margin-right:2px;
+  }
+
+</style>
+</head>
+<body>
+
+<button onclick="location.href='index.html'">
+  トップ画面に戻る
+</button>
+
+<h1 style="color:red; text-align:center; font-size:26px;">麻雀 成績管理</h1>
+
+<h2 id="dateTitle" style="font-size:22px;"></h2>
+
+<h2 style="font-size:22px;">プレイヤー登録（最大5人）</h2>
+<input id="playerName" placeholder="プレイヤー名を入力">
+<button onclick="addPlayer()">プレイヤー追加</button>
+
+<h3 style="font-size:20px;">登録済みプレイヤー</h3>
+<div id="playerList"></div>
+
+<hr>
+
+<h2 style="font-size:22px;">ウマ設定（4人対局固定）</h2>
+<input id="uma1" type="number" value="10" placeholder="1位のウマ">
+<input id="uma2" type="number" value="5" placeholder="2位のウマ">
+<input id="uma3" type="number" value="-5" placeholder="3位のウマ">
+<input id="uma4" type="number" value="-10" placeholder="4位のウマ">
+
+<h2 style="font-size:22px;">役満祝儀設定</h2>
+<input id="yakumanBonus" type="number" value="5" placeholder="役満祝儀">
+
+<hr>
+
+<h2 style="font-size:22px;">対局登録（4人だけ参加可能）</h2>
+<div id="scoreInputs"></div>
+
+<button onclick="addMatch()">対局を登録する</button>
+<button id="updateBtn" onclick="updateMatch()" style="display:none; background:#66cc66;">
+  対局を更新する
+</button>
+
+<hr>
+
+<h2 style="font-size:22px;">対局履歴</h2>
+<div id="historyTable">
+  <table>
+    <thead>
+      <tr id="historyHeader"></tr>
+    </thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+</div>
+
+<hr>
+
+<h2 style="font-size:22px;">成績（合計）</h2>
+<div id="totalContainer"></div>
+
+<script>
+let history = [];
+let todayData = null;
+let date = null;
+let editingMatchIndex = null;
+let isSavedToHistory = false;
+
+window.onload = () => {
+  const params = new URLSearchParams(location.search);
+  const isNew = params.get("new");
+  const paramDate = params.get("date");
+
+  history = JSON.parse(localStorage.getItem("history") || "[]");
+
+  if (isNew) {
+    const baseDate = new Date().toISOString().split("T")[0];
+    const sameDates = history.filter(h => h.date.startsWith(baseDate));
+    const suffix = sameDates.length === 0 ? "" : "_" + sameDates.length;
+
+    date = baseDate + suffix;
+
+    todayData = {
+      date: date,
+      players: [],
+      matches: []
+    };
+
+    isSavedToHistory = false;
+  }
+  else {
+    date = paramDate;
+    todayData = history.find(h => h.date === date);
+    isSavedToHistory = true;
+  }
+
+  document.getElementById("dateTitle").innerText = date + " の対局";
+
+  updatePlayerList();
+  updateScoreInputs();
+  showHistory();
+};
+
+function saveData() {
+  localStorage.setItem("history", JSON.stringify(history));
+}
+
+function addPlayer() {
+  const name = playerName.value.trim();
+  if (!name) return;
+
+  if (todayData.players.length >= 5) {
+    alert("参加できるのは最大5人までです");
+    return;
+  }
+
+  todayData.players.push(name);
+  playerName.value = "";
+  updatePlayerList();
+  updateScoreInputs();
+}
+
+function updatePlayerList() {
+  playerList.innerHTML = "";
+  todayData.players.forEach(name => {
+    playerList.innerHTML += `<span>${name}</span>`;
+  });
+}
+
+function updateScoreInputs() {
+  scoreInputs.innerHTML = "";
+
+  const showAbsent = todayData.players.length >= 5;
+
+  todayData.players.forEach(name => {
+    scoreInputs.innerHTML += `
+      <div style="margin-bottom:12px;">
+        <strong>${name}</strong><br>
+        <input type="number" id="score_${name}" placeholder="素点">
+        <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満">
+        ${
+          showAbsent
+            ? `<label class="absentLabel">
+                 <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
+                 不参加
+               </label>`
+            : ""
+        }
+      </div>
+    `;
+  });
+}
+
+function toggleAbsent(name) {
+  const absent = document.getElementById("absent_" + name).checked;
+  const score = document.getElementById("score_" + name);
+  const yaku = document.getElementById("yakuman_" + name);
+
+  if (absent) {
+    score.value = "";
+    yaku.value = 0;
+    score.disabled = true;
+    yaku.disabled = true;
+  } else {
+    score.disabled = false;
+    yaku.disabled = false;
+  }
+}
+
+function validateFourPlayers(scores) {
+
+  scores.forEach(p => {
+    p.score = p.score.replace(/[\s　]+/g, "");
+  });
+
+  const active = scores.filter(p => {
+    const absentBox = document.getElementById("absent_" + p.name);
+    const absent = absentBox ? absentBox.checked : false;
+
+    if (absent) return false;
+    return p.score !== "" && !isNaN(Number(p.score));
+  });
+
+  if (active.length !== 4) {
+    alert("参加者は必ず4人です（不参加チェックを使って4人にしてください）");
+    return null;
+  }
+
+  return active;
+}
+
+function addMatch() {
+  const uma = [
+    Number(uma1.value),
+    Number(uma2.value),
+    Number(uma3.value),
+    Number(uma4.value)
+  ];
+
+  const yakuBonus = Number(yakumanBonus.value);
+
+  let scores = todayData.players.map(name => {
+    return {
+      name,
+      score: document.getElementById("score_" + name).value,
+      yakuman: Number(document.getElementById("yakuman_" + name).value)
+    };
+  });
+
+  const active = validateFourPlayers(scores);
+  if (!active) return;
+
+  const totalScore = active.reduce((sum, p) => sum + Number(p.score), 0);
+  if (totalScore !== 0) {
+    alert("合計が0ではありません");
+    return;
+  }
+
+  let ranked = active.map(p => ({
+    name:p.name,
+    score:Number(p.score),
+    yakuman:p.yakuman
+  }));
+
+  ranked.sort((a,b) => b.score - a.score);
+
+  let row = {};
+
+  const yakumanPlayers = ranked.filter(r => r.yakuman > 0);
+  const nonYakumanPlayers = ranked.filter(r => r.yakuman === 0);
+
+  ranked.forEach((r, i) => {
+    const umaPoint = uma[i] || 0;
+    let yakuPoint = 0;
+
+    if (r.yakuman > 0) {
+      yakuPoint = yakuBonus * nonYakumanPlayers.length;
+    } else {
+      yakuPoint = -yakuBonus * yakumanPlayers.length;
+    }
+
+    const totalPoint = r.score + umaPoint + yakuPoint;
+
+    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+  });
+
+  todayData.matches.push({
+    match: todayData.matches.length + 1,
+    row,
+    time: new Date().toLocaleString()
+  });
+
+  if (!isSavedToHistory) {
+    history.push(todayData);
+    isSavedToHistory = true;
+  }
+
+  saveData();
+  alert("登録しました");
+  showHistory();
+}
+
+function editMatch(index) {
+  editingMatchIndex = index;
+
+  const match = todayData.matches[index];
+
+  todayData.players.forEach(name => {
+    const r = match.row[name];
+    const absentBox = document.getElementById("absent_" + name);
+
+    if (!r) {
+      if (absentBox) {
+        absentBox.checked = true;
+        toggleAbsent(name);
+      }
+      return;
+    }
+
+    const score = r.match(/^(-?\d+)/)[1];
+    const yakuman = r.match(/役満:(\d+)/)[1];
+
+    document.getElementById("score_" + name).value = score;
+    document.getElementById("yakuman_" + name).value = yakuman;
+
+    if (absentBox) {
+      absentBox.checked = false;
+      toggleAbsent(name);
+    }
+  });
+
+  updateBtn.style.display = "block";
+}
+
+function updateMatch() {
+  if (editingMatchIndex === null) return;
+
+  const uma = [
+    Number(uma1.value),
+    Number(uma2.value),
+    Number(uma3.value),
+    Number(uma4.value)
+  ];
+
+  const yakuBonus = Number(yakumanBonus.value);
+
+  let scores = todayData.players.map(name => {
+    return {
+      name,
+      score: document.getElementById("score_" + name).value,
+      yakuman: Number(document.getElementById("yakuman_" + name).value)
+    };
+  });
+
+  const active = validateFourPlayers(scores);
+  if (!active) return;
+
+  const totalScore = active.reduce((sum, p) => sum + Number(p.score), 0);
+  if (totalScore !== 0) {
+    alert("合計が0ではありません");
+    return;
+  }
+
+  let ranked = active.map(p => ({
+    name:p.name,
+    score:Number(p.score),
+    yakuman:p.yakuman
+  }));
+
+  ranked.sort((a,b) => b.score - a.score);
+
+  let row = {};
+
+  const yakumanPlayers = ranked.filter(r => r.yakuman > 0);
+  const nonYakumanPlayers = ranked.filter(r => r.yakuman === 0);
+
+  ranked.forEach((r, i) => {
+    const umaPoint = uma[i] || 0;
+    let yakuPoint = 0;
+
+    if (r.yakuman > 0) {
+      yakuPoint = yakuBonus * nonYakumanPlayers.length;
+    } else {
+      yakuPoint = -yakuBonus * yakumanPlayers.length;
+    }
+
+    const totalPoint = r.score + umaPoint + yakuPoint;
+
+    row[r.name] = `${r.score}（${totalPoint}） 役満:${r.yakuman}`;
+  });
+
+  todayData.matches[editingMatchIndex].row = row;
+  todayData.matches[editingMatchIndex].time = new Date().toLocaleString();
+
+  saveData();
+  alert("更新しました");
+
+  editingMatchIndex = null;
+  updateBtn.style.display = "none";
+
+  showHistory();
+}
+
+function showHistory() {
+  const players = todayData.players;
+
+  historyHeader.innerHTML = "<th>対局</th>";
+  players.forEach(name => {
+    historyHeader.innerHTML += `<th>${name}</th>`;
+  });
+  historyHeader.innerHTML += "<th>時間</th><th>修正</th>";
+
+  historyBody.innerHTML = "";
+
+  todayData.matches.forEach((h, index) => {
+    let tr = `<td>${h.match}</td>`;
+
+    players.forEach(name => {
+      const r = h.row[name];
+      tr += `<td>${r ? r : "－－"}</td>`;
+    });
+
+    tr += `<td>${h.time}</td>`;
+    tr += `<td><button onclick="editMatch(${index})">修正</button></td>`;
+
+    historyBody.innerHTML += "<tr>" + tr + "</tr>";
+  });
+
+  let totals = {};
+
+  todayData.matches.forEach(h => {
+    players.forEach(name => {
+      const r = h.row[name];
+      if (!r) return;
+
+      const match = r.match(/[（(]([-0-9]+)[）)]/);
+      const point = match ? Number(match[1]) : 0;
+
+      totals[name] = (totals[name] || 0) + point;
+    });
+  });
+
+  const ranking = Object.entries(totals)
+    .map(([name, total]) => ({ name, total }))
+    .sort((a,b) => b.total - a.total);
+
+  totalContainer.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>順位</th>
+          <th>プレイヤー</th>
+          <th>ポイント</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ranking.map((p,i)=>`
+          <tr>
+            <td>${i+1}</td>
+            <td>${p.name}</td>
+            <td>${p.total}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+</script>
+
+</body>
+</html>

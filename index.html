@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>麻雀 成績管理（スマホ最適化版）</title>
+<style>
+  body {
+    font-family:"Yu Gothic";
+    background:#111;
+    color:#f5d76e;
+    padding:20px;
+    font-size:20px;
+  }
+
+  h1 {
+    text-align:center;
+    color:red;
+    font-size:28px;
+    margin-bottom:25px;
+  }
+
+  button {
+    width:100%;
+    padding:15px;
+    margin:12px 0;
+    background:#bfa14a;
+    color:#111;
+    border:none;
+    font-weight:bold;
+    font-size:22px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+
+  button:hover {
+    background:#d4b75a;
+  }
+
+  /* 初期化ボタン（赤） */
+  .dangerBtn {
+    background:#cc4444;
+    color:white;
+  }
+  .dangerBtn:hover {
+    background:#dd5555;
+  }
+
+  .historyItem {
+    background:#222;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+    border:1px solid #444;
+    font-size:20px;
+  }
+
+  .historyItem button {
+    margin-top:10px;
+    background:#66cc66;
+    font-size:20px;
+  }
+
+  table {
+    width:100%;
+    background:#222;
+    border-collapse:collapse;
+    margin-top:20px;
+    font-size:18px;
+  }
+
+  th,td {
+    border:1px solid #555;
+    padding:12px;
+    text-align:center;
+  }
+
+  th {
+    background:#333;
+  }
+</style>
+</head>
+<body>
+
+<h1>麻雀 成績管理</h1>
+
+<button onclick="createNew()">新しい対局を作成する</button>
+
+<hr style="margin:25px 0;">
+
+<h2 style="font-size:24px;">総合成績一覧</h2>
+<div id="resultContainer"></div>
+
+<hr style="margin:25px 0;">
+
+<h2 style="font-size:24px;">過去の対局一覧</h2>
+<div id="historyList"></div>
+
+<hr style="margin:25px 0;">
+
+<!-- ★ 一番下に初期化ボタン（パスワード付き） ★ -->
+<button class="dangerBtn" onclick="resetAll()">全データ初期化（完全削除）</button>
+
+<script>
+function createNew() {
+  location.href = "register.html?new=1";
+}
+
+window.onload = () => {
+  const history = JSON.parse(localStorage.getItem("history") || "[]");
+
+  /* ------------------------------
+     総合成績一覧（上に表示）
+  ------------------------------ */
+  let totals = {};
+
+  history.forEach(day => {
+    day.matches.forEach(match => {
+      Object.keys(match.row).forEach(name => {
+        const r = match.row[name];
+        if (!r) return;
+
+        const point = Number(r.match(/[（(]([-0-9]+)[）)]/)[1]);
+        totals[name] = (totals[name] || 0) + point;
+      });
+    });
+  });
+
+  const ranking = Object.entries(totals)
+    .map(([name, total]) => ({ name, total }))
+    .sort((a,b) => b.total - a.total);
+
+  if (ranking.length === 0) {
+    resultContainer.innerHTML = "<p style='font-size:20px;'>まだ成績がありません</p>";
+  } else {
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>順位</th>
+            <th>プレイヤー</th>
+            <th>総ポイント</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    ranking.forEach((p,i) => {
+      html += `
+        <tr>
+          <td>${i+1}</td>
+          <td>${p.name}</td>
+          <td>${p.total}</td>
+        </tr>
+      `;
+    });
+
+    html += "</tbody></table>";
+    resultContainer.innerHTML = html;
+  }
+
+  /* ------------------------------
+     過去の対局一覧（下に表示）
+  ------------------------------ */
+  const list = document.getElementById("historyList");
+
+  if (history.length === 0) {
+    list.innerHTML = "<p style='font-size:20px;'>まだ対局がありません</p>";
+    return;
+  }
+
+  history.forEach(h => {
+    const div = document.createElement("div");
+    div.className = "historyItem";
+
+    div.innerHTML = `
+      <strong style="font-size:22px;">${h.date}</strong><br>
+      プレイヤー: ${h.players.join(", ")}<br>
+      対局数: ${h.matches.length}
+      <button onclick="openHistory('${h.date}')">開く</button>
+    `;
+
+    list.appendChild(div);
+  });
+};
+
+function openHistory(date) {
+  location.href = "register.html?date=" + date;
+}
+
+/* ------------------------------
+   ★ 全データ初期化（パスワード付き）
+------------------------------ */
+function resetAll() {
+  const pw = prompt("初期化パスワードを入力してください");
+
+  if (pw === null) return; // キャンセル
+
+  if (pw !== "yjsuzuki") {
+    alert("パスワードが違います");
+    return;
+  }
+
+  if (!confirm("本当に全データを削除しますか？\n（元に戻せません）")) return;
+
+  localStorage.removeItem("history");
+  alert("全データを削除しました");
+  location.reload();
+}
+</script>
+
+</body>
+</html>
