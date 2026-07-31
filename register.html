@@ -13,14 +13,13 @@
   }
 
   input {
-    padding:18px;
-    margin:10px 0;
-    width:100%;
+    padding:14px;
+    margin:8px 0;
     background:#222;
     color:#f5d76e;
     border:2px solid #bfa14a;
     border-radius:10px;
-    font-size:26px;
+    font-size:22px;
     box-sizing:border-box;
   }
 
@@ -70,14 +69,13 @@
   }
 
   .absentLabel {
-    margin-left:6px;
-    font-size:24px;
+    font-size:22px;
+    margin-left:10px;
   }
 
   .absentLabel input {
-    width:auto;
-    margin-right:6px;
-    transform:scale(1.5);
+    transform:scale(1.4);
+    margin-right:4px;
   }
 </style>
 </head>
@@ -106,7 +104,6 @@
 
 <h2 style="font-size:26px;">ウマ設定（4人対局固定）</h2>
 
-<!-- ウマ入力4つ横並び -->
 <div style="display:flex; gap:10px;">
   <input id="uma1" type="number" value="10" style="flex:1;">
   <input id="uma2" type="number" value="5" style="flex:1;">
@@ -114,7 +111,6 @@
   <input id="uma4" type="number" value="-10" style="flex:1;">
 </div>
 
-<!-- 見出しに説明を含める＋入力幅はウマ1つ目と同じ -->
 <h2 style="font-size:26px;">役満祝儀設定（非達成者からのポイント）</h2>
 <div style="max-width:300px;">
   <input id="yakumanBonus" type="number" value="5">
@@ -122,7 +118,6 @@
 
 <hr>
 
-<!-- ★★★ 見出しから「4人だけ参加可能」を削除 ★★★ -->
 <h2 style="font-size:26px;">対局登録</h2>
 
 <div id="scoreInputs"></div>
@@ -149,7 +144,7 @@
 <h2 style="font-size:26px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
-<!-- Firebase（compat版） -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -171,9 +166,6 @@
 let todayData = null;
 let editingMatchIndex = null;
 
-/* ------------------------------
-   register.html 読み込み（新規は空）
------------------------------- */
 window.onload = async () => {
   const params = new URLSearchParams(location.search);
   const isNew = params.get("new");
@@ -186,7 +178,6 @@ window.onload = async () => {
       matches: [],
       timestamp: null
     };
-
   } else {
     const doc = await db.collection("mahjong-history").doc(paramDate).get();
     todayData = doc.data();
@@ -197,9 +188,6 @@ window.onload = async () => {
   showHistory();
 };
 
-/* ------------------------------
-   プレイヤー追加
------------------------------- */
 function addPlayer() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
@@ -218,27 +206,30 @@ function updatePlayerList() {
   });
 }
 
-/* ------------------------------
-   点数入力欄（素点＋役満回数を横並びに）
------------------------------- */
+/* ★★★ 素点＋役満回数＋不参加を横並びにする ★★★ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
 
   todayData.players.forEach(name => {
     scoreArea.innerHTML += `
-      <div style="margin-bottom:16px;">
-        <strong style="font-size:26px;">${name}</strong>
+      <div style="margin-bottom:20px;">
 
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          <input type="number" id="score_${name}" placeholder="素点" style="flex:2;">
-          <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満回数" style="flex:1;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <strong style="font-size:26px;">${name}</strong>
+
+          <label class="absentLabel">
+            <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
+            不参加
+          </label>
         </div>
 
-        <label class="absentLabel">
-          <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
-          不参加
-        </label>
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="width:120px;">
+          <span style="font-size:22px;">役満回数</span>
+          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:120px;">
+        </div>
+
       </div>
     `;
   });
@@ -260,9 +251,8 @@ function toggleAbsent(name) {
   }
 }
 
-/* ------------------------------
-   参加者4人チェック（ロジックはそのまま）
------------------------------- */
+/* 以降のロジックは変更なし（省略せず全文） */
+
 function validateFourPlayers(scores) {
   scores.forEach(p => {
     p.score = p.score.replace(/[\s　]+/g, "");
@@ -284,9 +274,6 @@ function validateFourPlayers(scores) {
   return active;
 }
 
-/* ------------------------------
-   対局登録（初めて保存）
------------------------------- */
 async function addMatch() {
 
   if (!todayData.date) {
@@ -366,9 +353,6 @@ async function addMatch() {
   showHistory();
 }
 
-/* ------------------------------
-   対局修正
------------------------------- */
 function editMatch(index) {
   editingMatchIndex = index;
 
@@ -472,9 +456,6 @@ function updateMatch() {
   showHistory();
 }
 
-/* ------------------------------
-   履歴表示
------------------------------- */
 function showHistory() {
   const players = todayData.players;
 
