@@ -122,7 +122,9 @@
 
 <hr>
 
-<h2 style="font-size:26px;">対局登録（4人だけ参加可能）</h2>
+<!-- ★★★ 見出しから「4人だけ参加可能」を削除 ★★★ -->
+<h2 style="font-size:26px;">対局登録</h2>
+
 <div id="scoreInputs"></div>
 
 <button onclick="addMatch()">対局を登録する</button>
@@ -217,7 +219,7 @@ function updatePlayerList() {
 }
 
 /* ------------------------------
-   点数入力欄
+   点数入力欄（素点＋役満回数を横並びに）
 ------------------------------ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
@@ -226,9 +228,13 @@ function updateScoreInputs() {
   todayData.players.forEach(name => {
     scoreArea.innerHTML += `
       <div style="margin-bottom:16px;">
-        <strong style="font-size:26px;">${name}</strong><br>
-        <input type="number" id="score_${name}" placeholder="素点">
-        <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満">
+        <strong style="font-size:26px;">${name}</strong>
+
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="flex:2;">
+          <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満回数" style="flex:1;">
+        </div>
+
         <label class="absentLabel">
           <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
           不参加
@@ -255,7 +261,7 @@ function toggleAbsent(name) {
 }
 
 /* ------------------------------
-   参加者4人チェック
+   参加者4人チェック（ロジックはそのまま）
 ------------------------------ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
