@@ -85,7 +85,7 @@
 
 <hr>
 
-<h2 style="font-size:36px;">ウマ設定 ＋ 役満祝儀</h2>
+<h2 style="font-size:36px;">ウマ　　　役満祝儀</h2>
 
 <!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
 <div style="display:flex; gap:18px; flex-wrap:wrap;">
@@ -94,7 +94,6 @@
   <input id="uma3" type="number" value="-5" style="width:120px;">
   <input id="uma4" type="number" value="-10" style="width:120px;">
 
-  <!-- 役満祝儀（ウマと同じサイズ） -->
   <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
 </div>
 
@@ -148,6 +147,9 @@
 let todayData = null;
 let editingMatchIndex = null;
 
+/* ------------------------------
+   初期ロード
+------------------------------ */
 window.onload = async () => {
   const params = new URLSearchParams(location.search);
   const isNew = params.get("new");
@@ -170,6 +172,9 @@ window.onload = async () => {
   showHistory();
 };
 
+/* ------------------------------
+   プレイヤー追加
+------------------------------ */
 function addPlayer() {
   const name = document.getElementById("playerName").value.trim();
   if (!name) return;
@@ -188,7 +193,9 @@ function updatePlayerList() {
   });
 }
 
-/* ★★★ チェックボックス機能を完全削除 ★★★ */
+/* ------------------------------
+   点数入力欄（チェックボックス削除済み）
+------------------------------ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
@@ -213,7 +220,9 @@ function updateScoreInputs() {
   });
 }
 
-/* ★★★ validateFourPlayers はそのまま（4人固定） ★★★ */
+/* ------------------------------
+   参加者4人チェック（素点入力者が参加扱い）
+------------------------------ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
     p.score = p.score.replace(/[\s　]+/g, "");
@@ -229,6 +238,9 @@ function validateFourPlayers(scores) {
   return active;
 }
 
+/* ------------------------------
+   対局登録（登録した日の YYYY-MM-DD を使う）
+------------------------------ */
 async function addMatch() {
 
   if (!todayData.date) {
@@ -297,8 +309,7 @@ async function addMatch() {
 
   todayData.matches.push({
     match: todayData.matches.length + 1,
-    row,
-    time: new Date().toLocaleString()
+    row
   });
 
   todayData.timestamp = new Date();
@@ -308,6 +319,9 @@ async function addMatch() {
   showHistory();
 }
 
+/* ------------------------------
+   対局修正
+------------------------------ */
 function editMatch(index) {
   editingMatchIndex = index;
 
@@ -328,6 +342,9 @@ function editMatch(index) {
   updateBtn.style.display = "block";
 }
 
+/* ------------------------------
+   対局更新
+------------------------------ */
 function updateMatch() {
   if (editingMatchIndex === null) return;
 
@@ -386,7 +403,6 @@ function updateMatch() {
   });
 
   todayData.matches[editingMatchIndex].row = row;
-  todayData.matches[editingMatchIndex].time = new Date().toLocaleString();
 
   todayData.timestamp = new Date();
   db.collection("mahjong-history").doc(todayData.date).set(todayData);
@@ -399,6 +415,9 @@ function updateMatch() {
   showHistory();
 }
 
+/* ------------------------------
+   履歴表示（時間削除済み）
+------------------------------ */
 function showHistory() {
   const players = todayData.players;
 
@@ -406,7 +425,7 @@ function showHistory() {
   players.forEach(name => {
     historyHeader.innerHTML += `<th>${name}</th>`;
   });
-  historyHeader.innerHTML += "<th>時間</th><th>修正</th>";
+  historyHeader.innerHTML += "<th>修正</th>";
 
   historyBody.innerHTML = "";
 
@@ -418,7 +437,6 @@ function showHistory() {
       tr += `<td>${r ? r : "－－"}</td>`;
     });
 
-    tr += `<td>${h.time}</td>`;
     tr += `<td><button onclick="editMatch(${index})">修正</button></td>`;
 
     historyBody.innerHTML += "<tr>" + tr + "</tr>";
