@@ -91,7 +91,7 @@
 <hr>
 
 <!-- ★ 見出しを横並びにし、役満祝儀を右へ移動（入力ボックスと左端一致） ★ -->
-<div style="display:flex; gap:400px; align-items:center;">
+<div style="display:flex; gap:300px; align-items:center;">
   <h2 style="font-size:40px;">ウマ</h2>
 
   <!-- ★ 雄二さん指定：margin-left:330px ★ -->
@@ -110,7 +110,7 @@
   </div>
 
   <!-- 役満祝儀（左端を見出しと完全一致） -->
-  <div style="margin-left:130px;">
+  <div style="margin-left:30px;">
     <input id="yakumanBonus" type="number" value="5" style="width:150px;" placeholder="役満祝儀">
   </div>
 
@@ -257,12 +257,16 @@ function validateFourPlayers(scores) {
 }
 
 /* ------------------------------
-   対局登録
+   対局登録（日本時間で日付を生成）
 ------------------------------ */
 async function addMatch() {
 
   if (!todayData.date) {
-    const baseDate = new Date().toISOString().split("T")[0];
+
+    /* ★ 日本時間で日付を生成（UTCズレ解消） ★ */
+    const d = new Date();
+    const baseDate =
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
     const snap = await db.collection("mahjong-history").get();
     const sameDayDocs = snap.docs.filter(doc => doc.id.startsWith(baseDate));
