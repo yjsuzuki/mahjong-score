@@ -93,23 +93,25 @@
 <!-- ★ 見出しを横並びにし、役満祝儀を右へ移動（入力ボックスと左端一致） ★ -->
 <div style="display:flex; gap:200px; align-items:center;">
   <h2 style="font-size:40px;">ウマ</h2>
-  <h2 style="font-size:40px; margin-left:40px;">役満祝儀</h2>
+
+  <!-- ★ 雄二さん指定：margin-left:330px ★ -->
+  <h2 style="font-size:40px; margin-left:330px;">役満祝儀</h2>
 </div>
 
 <!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
 <div style="display:flex; gap:40px; align-items:center;">
 
-  <!-- ウマ4つ -->
+  <!-- ウマ4つ（横幅150px） -->
   <div style="display:flex; gap:14px;">
-    <input id="uma1" type="number" value="10" style="width:120px;">
-    <input id="uma2" type="number" value="5" style="width:120px;">
-    <input id="uma3" type="number" value="-5" style="width:120px;">
-    <input id="uma4" type="number" value="-10" style="width:120px;">
+    <input id="uma1" type="number" value="10" style="width:150px;">
+    <input id="uma2" type="number" value="5" style="width:150px;">
+    <input id="uma3" type="number" value="-5" style="width:150px;">
+    <input id="uma4" type="number" value="-10" style="width:150px;">
   </div>
 
-  <!-- 役満祝儀（左端を見出しと揃える） -->
-  <div style="margin-left:40px;">
-    <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
+  <!-- 役満祝儀（左端を見出しと完全一致） -->
+  <div style="margin-left:330px;">
+    <input id="yakumanBonus" type="number" value="5" style="width:150px;" placeholder="役満祝儀">
   </div>
 
 </div>
