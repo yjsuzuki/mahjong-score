@@ -199,19 +199,20 @@ window.onload = async () => {
    プレイヤー追加（人数無制限）
 ------------------------------ */
 function addPlayer() {
-  const name = playerName.value.trim();
+  const name = document.getElementById("playerName").value.trim();
   if (!name) return;
 
   todayData.players.push(name);
-  playerName.value = "";
+  document.getElementById("playerName").value = "";
   updatePlayerList();
   updateScoreInputs();
 }
 
 function updatePlayerList() {
-  playerList.innerHTML = "";
+  const list = document.getElementById("playerList");
+  list.innerHTML = "";
   todayData.players.forEach(name => {
-    playerList.innerHTML += `<span>${name}</span>`;
+    list.innerHTML += `<span>${name}</span>`;
   });
 }
 
