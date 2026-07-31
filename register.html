@@ -9,31 +9,32 @@
     background:#111;
     color:#f5d76e;
     padding:15px;
-    font-size:18px;
+    font-size:22px;
   }
 
   input {
-    padding:10px;
-    margin:6px 0;
+    padding:18px;
+    margin:10px 0;
     width:100%;
     background:#222;
     color:#f5d76e;
-    border:1px solid #444;
-    border-radius:6px;
-    font-size:18px;
+    border:2px solid #bfa14a;
+    border-radius:10px;
+    font-size:26px;
+    box-sizing:border-box;
   }
 
   button {
-    padding:12px;
-    margin:10px 0;
+    padding:18px;
+    margin:12px 0;
     background:#bfa14a;
     color:#111;
     border:none;
     font-weight:bold;
     cursor:pointer;
-    border-radius:8px;
+    border-radius:10px;
     width:100%;
-    font-size:20px;
+    font-size:26px;
   }
 
   button:hover { background:#d4b75a; }
@@ -43,12 +44,12 @@
     width:100%;
     background:#222;
     margin-top:20px;
-    font-size:16px;
+    font-size:20px;
   }
 
   th,td {
     border:1px solid #555;
-    padding:10px;
+    padding:12px;
     text-align:center;
   }
 
@@ -58,7 +59,7 @@
     display:inline-block;
     margin-right:12px;
     margin-bottom:8px;
-    font-size:20px;
+    font-size:26px;
     color:yellow;
   }
 
@@ -70,12 +71,13 @@
 
   .absentLabel {
     margin-left:6px;
-    font-size:18px;
+    font-size:24px;
   }
 
   .absentLabel input {
     width:auto;
-    margin-right:2px;
+    margin-right:6px;
+    transform:scale(1.5);
   }
 </style>
 </head>
@@ -85,29 +87,42 @@
   トップ画面に戻る
 </button>
 
-<h1 style="color:red; text-align:center; font-size:26px;">麻雀 成績管理</h1>
+<h1 style="color:red; text-align:center; font-size:30px;">麻雀 成績管理</h1>
 
-<h2 style="font-size:22px;">プレイヤー登録（人数無制限）</h2>
-<input id="playerName" placeholder="プレイヤー名を入力">
-<button onclick="addPlayer()">プレイヤー追加</button>
+<h2 style="font-size:26px;">プレイヤー登録（人数無制限）</h2>
 
-<h3 style="font-size:20px;">登録済みプレイヤー</h3>
+<!-- プレイヤー名入力＋追加ボタン横並び -->
+<div style="display:flex; gap:10px; align-items:center;">
+  <input id="playerName" placeholder="プレイヤー名を入力" style="flex:2;">
+  <button onclick="addPlayer()" style="flex:1; min-width:120px;">
+    追加
+  </button>
+</div>
+
+<h3 style="font-size:24px;">登録済みプレイヤー</h3>
 <div id="playerList"></div>
 
 <hr>
 
-<h2 style="font-size:22px;">ウマ設定（4人対局固定）</h2>
-<input id="uma1" type="number" value="10">
-<input id="uma2" type="number" value="5">
-<input id="uma3" type="number" value="-5">
-<input id="uma4" type="number" value="-10">
+<h2 style="font-size:26px;">ウマ設定（4人対局固定）</h2>
 
-<h2 style="font-size:22px;">役満祝儀設定</h2>
-<input id="yakumanBonus" type="number" value="5">
+<!-- ウマ入力4つ横並び -->
+<div style="display:flex; gap:10px;">
+  <input id="uma1" type="number" value="10" style="flex:1;">
+  <input id="uma2" type="number" value="5" style="flex:1;">
+  <input id="uma3" type="number" value="-5" style="flex:1;">
+  <input id="uma4" type="number" value="-10" style="flex:1;">
+</div>
+
+<!-- 見出しに説明を含める＋入力幅はウマ1つ目と同じ -->
+<h2 style="font-size:26px;">役満祝儀設定（非達成者からのポイント）</h2>
+<div style="max-width:300px;">
+  <input id="yakumanBonus" type="number" value="5">
+</div>
 
 <hr>
 
-<h2 style="font-size:22px;">対局登録（4人だけ参加可能）</h2>
+<h2 style="font-size:26px;">対局登録（4人だけ参加可能）</h2>
 <div id="scoreInputs"></div>
 
 <button onclick="addMatch()">対局を登録する</button>
@@ -117,7 +132,7 @@
 
 <hr>
 
-<h2 style="font-size:22px;">対局履歴</h2>
+<h2 style="font-size:26px;">対局履歴</h2>
 <div id="historyTable">
   <table>
     <thead>
@@ -129,7 +144,7 @@
 
 <hr>
 
-<h2 style="font-size:22px;">成績（合計）</h2>
+<h2 style="font-size:26px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
 <!-- Firebase（compat版） -->
@@ -210,8 +225,8 @@ function updateScoreInputs() {
 
   todayData.players.forEach(name => {
     scoreArea.innerHTML += `
-      <div style="margin-bottom:12px;">
-        <strong>${name}</strong><br>
+      <div style="margin-bottom:16px;">
+        <strong style="font-size:26px;">${name}</strong><br>
         <input type="number" id="score_${name}" placeholder="素点">
         <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満">
         <label class="absentLabel">
@@ -268,7 +283,6 @@ function validateFourPlayers(scores) {
 ------------------------------ */
 async function addMatch() {
 
-  // 初回登録時に日付を決める
   if (!todayData.date) {
     const baseDate = new Date().toISOString().split("T")[0];
 
@@ -523,4 +537,3 @@ function showHistory() {
 
 </body>
 </html>
-
