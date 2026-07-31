@@ -203,7 +203,8 @@ function updatePlayerList() {
    点数入力欄
 ------------------------------ */
 function updateScoreInputs() {
-  scoreInputs.innerHTML = "";
+  const scoreArea = document.getElementById("scoreInputs");
+  scoreArea.innerHTML = "";
 
   todayData.players.forEach(name => {
     scoreInputs.innerHTML += `
