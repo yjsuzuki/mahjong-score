@@ -62,14 +62,12 @@
     color:yellow;
   }
 
-  /* スマホで横スクロール可能にする */
   #historyTable {
     overflow-x:auto;
     display:block;
     white-space:nowrap;
   }
 
-  /* 不参加チェックの間隔を最小に */
   .absentLabel {
     margin-left:6px;
     font-size:18px;
@@ -79,7 +77,6 @@
     width:auto;
     margin-right:2px;
   }
-
 </style>
 </head>
 <body>
@@ -92,7 +89,7 @@
 
 <h2 id="dateTitle" style="font-size:22px;"></h2>
 
-<h2 style="font-size:22px;">プレイヤー登録（最大5人）</h2>
+<h2 style="font-size:22px;">プレイヤー登録（人数無制限）</h2>
 <input id="playerName" placeholder="プレイヤー名を入力">
 <button onclick="addPlayer()">プレイヤー追加</button>
 
@@ -102,13 +99,13 @@
 <hr>
 
 <h2 style="font-size:22px;">ウマ設定（4人対局固定）</h2>
-<input id="uma1" type="number" value="10" placeholder="1位のウマ">
-<input id="uma2" type="number" value="5" placeholder="2位のウマ">
-<input id="uma3" type="number" value="-5" placeholder="3位のウマ">
-<input id="uma4" type="number" value="-10" placeholder="4位のウマ">
+<input id="uma1" type="number" value="10">
+<input id="uma2" type="number" value="5">
+<input id="uma3" type="number" value="-5">
+<input id="uma4" type="number" value="-10">
 
 <h2 style="font-size:22px;">役満祝儀設定</h2>
-<input id="yakumanBonus" type="number" value="5" placeholder="役満祝儀">
+<input id="yakumanBonus" type="number" value="5">
 
 <hr>
 
@@ -137,39 +134,58 @@
 <h2 style="font-size:22px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+
 <script>
-let history = [];
+const firebaseConfig = {
+  apiKey: "AIzaSyDc6f_NEYzJ4kKrkLEfWyGc6Ou3yb7ZTk",
+  authDomain: "mahjong-score-85942.firebaseapp.com",
+  projectId: "mahjong-score-85942",
+  storageBucket: "mahjong-score-85942.firebasestorage.app",
+  messagingSenderId: "524280113731",
+  appId: "1:524280113731:web:32d9368f9c9e58fb9802f6"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 let todayData = null;
 let date = null;
 let editingMatchIndex = null;
-let isSavedToHistory = false;
 
-window.onload = () => {
+/* ------------------------------
+   Firestore 読み込み
+------------------------------ */
+window.onload = async () => {
   const params = new URLSearchParams(location.search);
   const isNew = params.get("new");
   const paramDate = params.get("date");
 
-  history = JSON.parse(localStorage.getItem("history") || "[]");
-
   if (isNew) {
     const baseDate = new Date().toISOString().split("T")[0];
-    const sameDates = history.filter(h => h.date.startsWith(baseDate));
-    const suffix = sameDates.length === 0 ? "" : "_" + sameDates.length;
 
+    // 同じ日のドキュメント数を確認
+    const snap = await db.collection("mahjong-history")
+      .where("date", ">=", baseDate)
+      .where("date", "<=", baseDate + "_999")
+      .get();
+
+    const suffix = snap.size === 0 ? "" : "_" + snap.size;
     date = baseDate + suffix;
 
     todayData = {
-      date: date,
+      date,
       players: [],
-      matches: []
+      matches: [],
+      timestamp: new Date()
     };
 
-    isSavedToHistory = false;
-  }
-  else {
+  } else {
     date = paramDate;
-    todayData = history.find(h => h.date === date);
-    isSavedToHistory = true;
+    const doc = await db.collection("mahjong-history").doc(date).get();
+    todayData = doc.data();
   }
 
   document.getElementById("dateTitle").innerText = date + " の対局";
@@ -179,18 +195,12 @@ window.onload = () => {
   showHistory();
 };
 
-function saveData() {
-  localStorage.setItem("history", JSON.stringify(history));
-}
-
+/* ------------------------------
+   プレイヤー追加（人数無制限）
+------------------------------ */
 function addPlayer() {
   const name = playerName.value.trim();
   if (!name) return;
-
-  if (todayData.players.length >= 5) {
-    alert("参加できるのは最大5人までです");
-    return;
-  }
 
   todayData.players.push(name);
   playerName.value = "";
@@ -205,10 +215,11 @@ function updatePlayerList() {
   });
 }
 
+/* ------------------------------
+   点数入力欄
+------------------------------ */
 function updateScoreInputs() {
   scoreInputs.innerHTML = "";
-
-  const showAbsent = todayData.players.length >= 5;
 
   todayData.players.forEach(name => {
     scoreInputs.innerHTML += `
@@ -216,14 +227,10 @@ function updateScoreInputs() {
         <strong>${name}</strong><br>
         <input type="number" id="score_${name}" placeholder="素点">
         <input type="number" id="yakuman_${name}" value="0" min="0" placeholder="役満">
-        ${
-          showAbsent
-            ? `<label class="absentLabel">
-                 <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
-                 不参加
-               </label>`
-            : ""
-        }
+        <label class="absentLabel">
+          <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
+          不参加
+        </label>
       </div>
     `;
   });
@@ -245,8 +252,10 @@ function toggleAbsent(name) {
   }
 }
 
+/* ------------------------------
+   参加者4人チェック
+------------------------------ */
 function validateFourPlayers(scores) {
-
   scores.forEach(p => {
     p.score = p.score.replace(/[\s　]+/g, "");
   });
@@ -260,13 +269,16 @@ function validateFourPlayers(scores) {
   });
 
   if (active.length !== 4) {
-    alert("参加者は必ず4人です（不参加チェックを使って4人にしてください）");
+    alert("参加者は必ず4人です（不参加チェックで4人にしてください）");
     return null;
   }
 
   return active;
 }
 
+/* ------------------------------
+   対局登録
+------------------------------ */
 function addMatch() {
   const uma = [
     Number(uma1.value),
@@ -328,16 +340,14 @@ function addMatch() {
     time: new Date().toLocaleString()
   });
 
-  if (!isSavedToHistory) {
-    history.push(todayData);
-    isSavedToHistory = true;
-  }
-
-  saveData();
+  saveToFirestore();
   alert("登録しました");
   showHistory();
 }
 
+/* ------------------------------
+   対局修正
+------------------------------ */
 function editMatch(index) {
   editingMatchIndex = index;
 
@@ -430,7 +440,7 @@ function updateMatch() {
   todayData.matches[editingMatchIndex].row = row;
   todayData.matches[editingMatchIndex].time = new Date().toLocaleString();
 
-  saveData();
+  saveToFirestore();
   alert("更新しました");
 
   editingMatchIndex = null;
@@ -439,6 +449,18 @@ function updateMatch() {
   showHistory();
 }
 
+/* ------------------------------
+   Firestore 保存
+------------------------------ */
+function saveToFirestore() {
+  todayData.timestamp = new Date();
+
+  db.collection("mahjong-history").doc(date).set(todayData);
+}
+
+/* ------------------------------
+   履歴表示
+------------------------------ */
 function showHistory() {
   const players = todayData.players;
 
