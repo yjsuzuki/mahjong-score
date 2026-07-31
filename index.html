@@ -22,6 +22,9 @@
   h2 {
     font-size:40px;
     margin:20px 0;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
   }
 
   button {
@@ -41,11 +44,18 @@
     background:#d4b75a;
   }
 
-  .dangerBtn {
+  /* ★ 全データ初期化ボタン（固定しない・小さく） */
+  #resetBtn {
+    width:auto;
+    padding:12px 18px;
+    font-size:20px;
     background:#cc4444;
     color:white;
+    border-radius:10px;
+    margin-top:40px;
   }
-  .dangerBtn:hover {
+
+  #resetBtn:hover {
     background:#dd5555;
   }
 
@@ -61,25 +71,26 @@
     padding:10px;
     border-radius:8px;
     border:2px solid #444;
-    font-size:22px;   /* ← 小さくする */
+    font-size:22px;
     width:100%;
     box-sizing:border-box;
     line-height:1.3;
   }
 
   .historyItem strong {
-    font-size:24px;   /* ← 日付は少し大きめ */
+    font-size:24px;
   }
 
   .historyItem button {
     margin-top:8px;
     background:#66cc66;
-    font-size:20px;   /* ← 小さくする */
+    font-size:20px;
     padding:10px;
     border-radius:10px;
   }
 
-  table {
+  /* ★★★ 総合成績一覧（崩れ防止） ★★★ */
+  #resultContainer table {
     width:100%;
     background:#222;
     border-collapse:collapse;
@@ -87,14 +98,39 @@
     font-size:34px;
   }
 
-  th,td {
+  #resultContainer th,
+  #resultContainer td {
     border:2px solid #555;
     padding:20px;
     text-align:center;
   }
 
-  th {
+  #resultContainer th {
     background:#333;
+  }
+
+  /* ★ 役満達成者一覧（コンパクト） */
+  #yakumanList {
+    background:#222;
+    padding:12px;
+    border-radius:10px;
+    border:2px solid #444;
+    font-size:26px;
+    margin-top:20px;
+  }
+
+  #yakumanList div {
+    margin-bottom:10px;
+  }
+
+  /* 役満登録ボタン（横に小さく） */
+  #addYakumanSmallBtn {
+    background:#bfa14a;
+    font-size:24px;
+    padding:10px 16px;
+    border-radius:10px;
+    width:auto;
+    margin-left:20px;
   }
 </style>
 </head>
@@ -116,13 +152,24 @@
 
 <hr style="margin:30px 0;">
 
-<button class="dangerBtn" onclick="resetAll()">全データ初期化（完全削除）</button>
+<h2>
+  役満達成者一覧
+  <button id="addYakumanSmallBtn" onclick="addYakuman()">登録</button>
+</h2>
+
+<div id="yakumanList"></div>
+
+<!-- ★ 一番下に小さく配置 -->
+<button id="resetBtn" onclick="resetAll()">全データ初期化</button>
 
 <script>
 function createNew() {
   location.href = "register.html?new=1";
 }
 
+/* ------------------------------
+   Firestore から全データ読み込み
+------------------------------ */
 function loadAllFromFirestore() {
   db.collection("mahjong-history")
     .get()
@@ -138,12 +185,32 @@ function loadAllFromFirestore() {
 
       renderAll(history);
     });
+
+  db.collection("yakuman-achievements")
+    .get()
+    .then(snapshot => {
+      const list = document.getElementById("yakumanList");
+      list.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        list.innerHTML += `
+          <div>
+            <strong>${d.date}</strong>　
+            <strong>${d.name}</strong>：${d.yaku}
+          </div>
+        `;
+      });
+    });
 }
 
 window.onload = () => {
   loadAllFromFirestore();
 };
 
+/* ------------------------------
+   Firestoreデータを画面に描画
+------------------------------ */
 function renderAll(history) {
 
   let totals = {};
@@ -174,44 +241,35 @@ function renderAll(history) {
       return b.count - a.count;
     });
 
-  if (ranking.length === 0) {
-    resultContainer.innerHTML = "<p style='font-size:34px;'>まだ成績がありません</p>";
-  } else {
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>順位</th>
-            <th>プレイヤー</th>
-            <th>総ポイント</th>
-            <th>対局数</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    ranking.forEach((p,i) => {
-      html += `
+  let html = `
+    <table>
+      <thead>
         <tr>
-          <td>${i+1}</td>
-          <td>${p.name}</td>
-          <td>${p.total}</td>
-          <td>${p.count}</td>
+          <th>順位</th>
+          <th>プレイヤー</th>
+          <th>総ポイント</th>
+          <th>対局数</th>
         </tr>
-      `;
-    });
+      </thead>
+      <tbody>
+  `;
 
-    html += "</tbody></table>";
-    resultContainer.innerHTML = html;
-  }
+  ranking.forEach((p,i) => {
+    html += `
+      <tr>
+        <td>${i+1}</td>
+        <td>${p.name}</td>
+        <td>${p.total}</td>
+        <td>${p.count}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+  resultContainer.innerHTML = html;
 
   const list = document.getElementById("historyList");
   list.innerHTML = "";
-
-  if (history.length === 0) {
-    list.innerHTML = "<p style='font-size:34px;'>まだ対局がありません</p>";
-    return;
-  }
 
   history.forEach(h => {
     const div = document.createElement("div");
@@ -219,7 +277,7 @@ function renderAll(history) {
 
     div.innerHTML = `
       <strong>${h.date}</strong><br>
-      プレイヤー: ${h.players.join(", ")}<br>
+      ${h.players.join(", ")}<br>
       対局数: ${h.matches.length}
       <button onclick="openHistory('${h.date}')">開く</button>
     `;
@@ -232,6 +290,34 @@ function openHistory(date) {
   location.href = "register.html?date=" + date;
 }
 
+/* ------------------------------
+   役満達成者追加（小ボタン）
+------------------------------ */
+function addYakuman() {
+  const name = prompt("役満達成者の名前を入力");
+  if (!name) return;
+
+  const yaku = prompt("役名を入力（例：四暗刻、国士無双など）");
+  if (!yaku) return;
+
+  const d = new Date();
+  const dateStr =
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+  db.collection("yakuman-achievements").add({
+    name,
+    yaku,
+    date: dateStr,
+    timestamp: new Date()
+  });
+
+  alert("登録しました");
+  loadAllFromFirestore();
+}
+
+/* ------------------------------
+   Firestore 全削除
+------------------------------ */
 function resetAll() {
   const pw = prompt("初期化パスワードを入力してください");
   if (pw === null) return;
@@ -244,6 +330,10 @@ function resetAll() {
   if (!confirm("本当に全データを削除しますか？")) return;
 
   db.collection("mahjong-history").get().then(snapshot => {
+    snapshot.forEach(doc => doc.ref.delete());
+  });
+
+  db.collection("yakuman-achievements").get().then(snapshot => {
     snapshot.forEach(doc => doc.ref.delete());
   });
 
