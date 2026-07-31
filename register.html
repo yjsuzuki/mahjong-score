@@ -76,7 +76,7 @@
 <h1 style="color:red; text-align:center; font-size:44px;">麻雀 成績管理</h1>
 
 <!-- ★ プレイヤー選択（プルダウン1つ＋追加ボタン） -->
-<h2 style="font-size:40px;">プレイヤー選択（最大4人）</h2>
+<h2 style="font-size:40px;">プレイヤー選択</h2>
 
 <div style="display:flex; gap:18px; align-items:center;">
   <select id="playerSelect" style="flex:2;">
@@ -250,7 +250,7 @@ function updateScoreInputs() {
 }
 
 /* ------------------------------
-   対局登録（既存ロジックそのまま）
+   対局登録
 ------------------------------ */
 async function addMatch() {
 
@@ -258,8 +258,6 @@ async function addMatch() {
     alert("プレイヤーを4人選択してください");
     return;
   }
-
-  /* ▼ 以下は既存ロジックそのまま（プレイヤー名だけ置き換わる） */
 
   if (!todayData.date) {
     const d = new Date();
