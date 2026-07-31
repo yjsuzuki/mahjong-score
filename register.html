@@ -8,32 +8,32 @@
     font-family:"Yu Gothic";
     background:#111;
     color:#f5d76e;
-    padding:20px;
-    font-size:26px;
+    padding:24px;
+    font-size:30px;
   }
 
   input {
-    padding:22px;
-    margin:10px 0;
+    padding:26px;
+    margin:12px 0;
     background:#222;
     color:#f5d76e;
-    border:2px solid #bfa14a;
-    border-radius:14px;
-    font-size:30px;
+    border:3px solid #bfa14a;
+    border-radius:16px;
+    font-size:34px;
     box-sizing:border-box;
   }
 
   button {
-    padding:24px;
-    margin:16px 0;
+    padding:28px;
+    margin:20px 0;
     background:#bfa14a;
     color:#111;
     border:none;
     font-weight:bold;
     cursor:pointer;
-    border-radius:14px;
+    border-radius:16px;
     width:100%;
-    font-size:32px;
+    font-size:36px;
   }
 
   button:hover { background:#d4b75a; }
@@ -42,13 +42,13 @@
     border-collapse:collapse;
     width:100%;
     background:#222;
-    margin-top:20px;
-    font-size:24px;
+    margin-top:24px;
+    font-size:30px;
   }
 
   th,td {
-    border:1px solid #555;
-    padding:16px;
+    border:2px solid #555;
+    padding:20px;
     text-align:center;
   }
 
@@ -56,15 +56,10 @@
 
   #playerList span {
     display:inline-block;
-    margin-right:12px;
-    margin-bottom:8px;
-    font-size:30px;
+    margin-right:16px;
+    margin-bottom:12px;
+    font-size:34px;
     color:yellow;
-  }
-
-  .absentCheck {
-    transform:scale(1.8);
-    margin-right:10px;
   }
 </style>
 </head>
@@ -74,40 +69,38 @@
   トップ画面に戻る
 </button>
 
-<h1 style="color:red; text-align:center; font-size:36px;">麻雀 成績管理</h1>
+<h1 style="color:red; text-align:center; font-size:40px;">麻雀 成績管理</h1>
 
-<h2 style="font-size:30px;">プレイヤー登録（人数無制限）</h2>
+<h2 style="font-size:36px;">プレイヤー登録（人数無制限）</h2>
 
-<div style="display:flex; gap:14px; align-items:center;">
+<div style="display:flex; gap:18px; align-items:center;">
   <input id="playerName" placeholder="プレイヤー名を入力" style="flex:2;">
-  <button onclick="addPlayer()" style="flex:1; min-width:120px;">
+  <button onclick="addPlayer()" style="flex:1; min-width:140px;">
     追加
   </button>
 </div>
 
-<h3 style="font-size:28px;">登録済みプレイヤー</h3>
+<h3 style="font-size:34px;">登録済みプレイヤー</h3>
 <div id="playerList"></div>
 
 <hr>
 
-<h2 style="font-size:30px;">ウマ設定（4人対局固定）</h2>
+<h2 style="font-size:36px;">ウマ設定 ＋ 役満祝儀</h2>
 
-<!-- ★ ウマ入力欄を短くした（120px） ★ -->
-<div style="display:flex; gap:14px;">
+<!-- ★ ウマ4つ＋役満祝儀を横一列に配置 ★ -->
+<div style="display:flex; gap:18px; flex-wrap:wrap;">
   <input id="uma1" type="number" value="10" style="width:120px;">
   <input id="uma2" type="number" value="5" style="width:120px;">
   <input id="uma3" type="number" value="-5" style="width:120px;">
   <input id="uma4" type="number" value="-10" style="width:120px;">
-</div>
 
-<h2 style="font-size:30px;">役満祝儀設定（非達成者からのポイント）</h2>
-<div style="max-width:340px;">
-  <input id="yakumanBonus" type="number" value="5">
+  <!-- 役満祝儀（ウマと同じサイズ） -->
+  <input id="yakumanBonus" type="number" value="5" style="width:120px;" placeholder="役満祝儀">
 </div>
 
 <hr>
 
-<h2 style="font-size:30px;">対局登録</h2>
+<h2 style="font-size:36px;">対局登録</h2>
 
 <div id="scoreInputs"></div>
 
@@ -118,7 +111,7 @@
 
 <hr>
 
-<h2 style="font-size:30px;">対局履歴</h2>
+<h2 style="font-size:36px;">対局履歴</h2>
 <div id="historyTable">
   <table>
     <thead>
@@ -130,7 +123,7 @@
 
 <hr>
 
-<h2 style="font-size:30px;">成績（合計）</h2>
+<h2 style="font-size:36px;">成績（合計）</h2>
 <div id="totalContainer"></div>
 
 <!-- Firebase -->
@@ -195,37 +188,24 @@ function updatePlayerList() {
   });
 }
 
-/* ★★★ 不参加チェックの意味を逆転＋デフォルト4人参加 ★★★ */
+/* ★★★ チェックボックス機能を完全削除 ★★★ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
 
-  const playerCount = todayData.players.length;
-
-  todayData.players.forEach((name, index) => {
-
-    const showAbsent = playerCount >= 5;  // 5人以上で表示
-    const defaultChecked = index < 4;     // 最初の4人は参加（チェックON）
+  todayData.players.forEach(name => {
 
     scoreArea.innerHTML += `
-      <div style="margin-bottom:28px;">
+      <div style="margin-bottom:32px;">
 
-        <div style="display:flex; align-items:center; gap:18px;">
-          ${showAbsent ? `
-            <input type="checkbox" class="absentCheck" id="absent_${name}"
-              ${defaultChecked ? "checked" : ""} 
-              onclick="toggleAbsent('${name}')">
-          ` : ``}
+        <strong style="font-size:38px;">${name}</strong>
 
-          <strong style="font-size:32px;">${name}</strong>
-        </div>
+        <div style="display:flex; gap:70px; align-items:center; margin-top:20px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="width:240px;">
 
-        <div style="display:flex; gap:60px; align-items:center; margin-top:18px;">
-          <input type="number" id="score_${name}" placeholder="素点" style="width:220px;">
+          <span style="font-size:34px;">役満回数</span>
 
-          <span style="font-size:28px;">役満回数</span>
-
-          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:220px;">
+          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:240px;">
         </div>
 
       </div>
@@ -233,38 +213,16 @@ function updateScoreInputs() {
   });
 }
 
-function toggleAbsent(name) {
-  const checked = document.getElementById("absent_" + name)?.checked;
-  const score = document.getElementById("score_" + name);
-  const yaku = document.getElementById("yakuman_" + name);
-
-  if (!checked) {  // OFF → 不参加
-    score.value = "";
-    yaku.value = 0;
-    score.disabled = true;
-    yaku.disabled = true;
-  } else {         // ON → 参加
-    score.disabled = false;
-    yaku.disabled = false;
-  }
-}
-
-/* 以降のロジックは変更なし（全文） */
-
+/* ★★★ validateFourPlayers はそのまま（4人固定） ★★★ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
     p.score = p.score.replace(/[\s　]+/g, "");
   });
 
-  const active = scores.filter(p => {
-    const absentBox = document.getElementById("absent_" + p.name);
-    const absent = absentBox ? !absentBox.checked : false; // チェックOFF＝不参加
-    if (absent) return false;
-    return p.score !== "" && !isNaN(Number(p.score));
-  });
+  const active = scores.filter(p => p.score !== "" && !isNaN(Number(p.score)));
 
   if (active.length !== 4) {
-    alert("参加者は必ず4人です（チェックONで4人にしてください）");
+    alert("参加者は必ず4人です（素点を入力した4人が参加扱いになります）");
     return null;
   }
 
@@ -357,26 +315,14 @@ function editMatch(index) {
 
   todayData.players.forEach(name => {
     const r = match.row[name];
-    const absentBox = document.getElementById("absent_" + name);
 
-    if (!r) {
-      if (absentBox) {
-        absentBox.checked = false; // 不参加
-        toggleAbsent(name);
-      }
-      return;
-    }
+    if (!r) return;
 
     const score = r.match(/^(-?\d+)/)[1];
     const yakuman = r.match(/役満:(\d+)/)[1];
 
     document.getElementById("score_" + name).value = score;
     document.getElementById("yakuman_" + name).value = yakuman;
-
-    if (absentBox) {
-      absentBox.checked = true; // 参加
-      toggleAbsent(name);
-    }
   });
 
   updateBtn.style.display = "block";
