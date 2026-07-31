@@ -62,8 +62,9 @@
     color:yellow;
   }
 
-  .absentLabel input {
+  .absentCheck {
     transform:scale(1.8);
+    margin-right:10px;
   }
 </style>
 </head>
@@ -91,11 +92,12 @@
 
 <h2 style="font-size:30px;">ウマ設定（4人対局固定）</h2>
 
+<!-- ★ ウマ入力欄を短くした（120px） ★ -->
 <div style="display:flex; gap:14px;">
-  <input id="uma1" type="number" value="10" style="flex:1;">
-  <input id="uma2" type="number" value="5" style="flex:1;">
-  <input id="uma3" type="number" value="-5" style="flex:1;">
-  <input id="uma4" type="number" value="-10" style="flex:1;">
+  <input id="uma1" type="number" value="10" style="width:120px;">
+  <input id="uma2" type="number" value="5" style="width:120px;">
+  <input id="uma3" type="number" value="-5" style="width:120px;">
+  <input id="uma4" type="number" value="-10" style="width:120px;">
 </div>
 
 <h2 style="font-size:30px;">役満祝儀設定（非達成者からのポイント）</h2>
@@ -193,36 +195,37 @@ function updatePlayerList() {
   });
 }
 
-/* ★★★ 不参加の表示条件＋素点と役満回数のレイアウト ★★★ */
+/* ★★★ 不参加チェックの意味を逆転＋デフォルト4人参加 ★★★ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
   scoreArea.innerHTML = "";
 
   const playerCount = todayData.players.length;
 
-  todayData.players.forEach(name => {
+  todayData.players.forEach((name, index) => {
 
     const showAbsent = playerCount >= 5;  // 5人以上で表示
+    const defaultChecked = index < 4;     // 最初の4人は参加（チェックON）
 
     scoreArea.innerHTML += `
       <div style="margin-bottom:28px;">
 
         <div style="display:flex; align-items:center; gap:18px;">
           ${showAbsent ? `
-            <label class="absentLabel" style="gap:0;">
-              <input type="checkbox" id="absent_${name}" onclick="toggleAbsent('${name}')">
-            </label>
+            <input type="checkbox" class="absentCheck" id="absent_${name}"
+              ${defaultChecked ? "checked" : ""} 
+              onclick="toggleAbsent('${name}')">
           ` : ``}
 
           <strong style="font-size:32px;">${name}</strong>
         </div>
 
-        <div style="display:flex; gap:50px; align-items:center; margin-top:18px;">
-          <input type="number" id="score_${name}" placeholder="素点" style="width:200px;">
+        <div style="display:flex; gap:60px; align-items:center; margin-top:18px;">
+          <input type="number" id="score_${name}" placeholder="素点" style="width:220px;">
 
           <span style="font-size:28px;">役満回数</span>
 
-          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:200px;">
+          <input type="number" id="yakuman_${name}" value="0" min="0" style="width:220px;">
         </div>
 
       </div>
@@ -231,16 +234,16 @@ function updateScoreInputs() {
 }
 
 function toggleAbsent(name) {
-  const absent = document.getElementById("absent_" + name)?.checked;
+  const checked = document.getElementById("absent_" + name)?.checked;
   const score = document.getElementById("score_" + name);
   const yaku = document.getElementById("yakuman_" + name);
 
-  if (absent) {
+  if (!checked) {  // OFF → 不参加
     score.value = "";
     yaku.value = 0;
     score.disabled = true;
     yaku.disabled = true;
-  } else {
+  } else {         // ON → 参加
     score.disabled = false;
     yaku.disabled = false;
   }
@@ -255,14 +258,13 @@ function validateFourPlayers(scores) {
 
   const active = scores.filter(p => {
     const absentBox = document.getElementById("absent_" + p.name);
-    const absent = absentBox ? absentBox.checked : false;
-
+    const absent = absentBox ? !absentBox.checked : false; // チェックOFF＝不参加
     if (absent) return false;
     return p.score !== "" && !isNaN(Number(p.score));
   });
 
   if (active.length !== 4) {
-    alert("参加者は必ず4人です（不参加チェックで4人にしてください）");
+    alert("参加者は必ず4人です（チェックONで4人にしてください）");
     return null;
   }
 
@@ -359,7 +361,7 @@ function editMatch(index) {
 
     if (!r) {
       if (absentBox) {
-        absentBox.checked = true;
+        absentBox.checked = false; // 不参加
         toggleAbsent(name);
       }
       return;
@@ -372,7 +374,7 @@ function editMatch(index) {
     document.getElementById("yakuman_" + name).value = yakuman;
 
     if (absentBox) {
-      absentBox.checked = false;
+      absentBox.checked = true; // 参加
       toggleAbsent(name);
     }
   });
