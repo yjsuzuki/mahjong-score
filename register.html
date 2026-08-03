@@ -108,7 +108,7 @@
   </div>
 
   <div style="margin-left:30px;">
-    <input id="yakumanBonus" type="number" value="10" style="width:150px;">
+    <input id="yakumanBonus" type="number" value="5" style="width:150px;">
   </div>
 </div>
 
@@ -170,17 +170,14 @@ window.onload = async () => {
   const isNew = params.get("new");
   const paramDate = params.get("date");
 
-  /* Firestore からプレイヤー一覧取得（無制限） */
   const snapPlayers = await db.collection("players").get();
   allPlayers = snapPlayers.docs.map(doc => doc.data().name);
 
-  /* プルダウンに反映 */
   const sel = document.getElementById("playerSelect");
   allPlayers.forEach(p => {
     sel.innerHTML += `<option value="${p}">${p}</option>`;
   });
 
-  /* 新規 or 既存データ読み込み */
   if (isNew) {
     todayData = {
       date: null,
@@ -213,7 +210,6 @@ function addSelectedPlayer() {
     return;
   }
 
-  /* ★ 無制限に追加できる（制限なし） */
   todayData.players.push(val);
 
   renderSelectedPlayers();
@@ -226,7 +222,7 @@ function renderSelectedPlayers() {
 }
 
 /* ------------------------------
-   点数入力欄（選択した人数分だけ生成）
+   点数入力欄生成
 ------------------------------ */
 function updateScoreInputs() {
   const scoreArea = document.getElementById("scoreInputs");
@@ -247,7 +243,65 @@ function updateScoreInputs() {
 }
 
 /* ------------------------------
-   対局登録（素点入力した4人が参加扱い）
+   ★ 同点順位選択ダイアログ
+------------------------------ */
+async function resolveTies(ranked) {
+  for (let i = 0; i < ranked.length - 1; i++) {
+    if (ranked[i].score === ranked[i+1].score) {
+
+      const p1 = ranked[i].name;
+      const p2 = ranked[i+1].name;
+
+      const choice = await new Promise(resolve => {
+        const dialog = document.createElement("div");
+        dialog.style.position = "fixed";
+        dialog.style.top = "0";
+        dialog.style.left = "0";
+        dialog.style.width = "100%";
+        dialog.style.height = "100%";
+        dialog.style.background = "rgba(0,0,0,0.8)";
+        dialog.style.display = "flex";
+        dialog.style.flexDirection = "column";
+        dialog.style.justifyContent = "center";
+        dialog.style.alignItems = "center";
+        dialog.style.color = "white";
+        dialog.style.fontSize = "40px";
+        dialog.style.zIndex = "9999";
+
+        dialog.innerHTML = `
+          <div style="margin-bottom:40px;">
+            <strong>${p1}</strong> と <strong>${p2}</strong> は同点です。<br>
+            どちらを上位にしますか？
+          </div>
+          <button id="tieBtn1" style="font-size:36px; padding:20px; margin:10px; width:60%;">${p1} を上位にする</button>
+          <button id="tieBtn2" style="font-size:36px; padding:20px; margin:10px; width:60%;">${p2} を上位にする</button>
+        `;
+
+        document.body.appendChild(dialog);
+
+        document.getElementById("tieBtn1").onclick = () => {
+          dialog.remove();
+          resolve(p1);
+        };
+        document.getElementById("tieBtn2").onclick = () => {
+          dialog.remove();
+          resolve(p2);
+        };
+      });
+
+      if (choice === ranked[i+1].name) {
+        const temp = ranked[i];
+        ranked[i] = ranked[i+1];
+        ranked[i+1] = temp;
+      }
+    }
+  }
+
+  return ranked;
+}
+
+/* ------------------------------
+   対局登録
 ------------------------------ */
 async function addMatch() {
 
@@ -280,7 +334,6 @@ async function addMatch() {
     };
   });
 
-  /* ★ 素点を入力した4人だけが参加扱い（あなたの元の仕様） */
   const active = validateFourPlayers(scores);
   if (!active) return;
 
@@ -297,6 +350,9 @@ async function addMatch() {
   }));
 
   ranked.sort((a,b) => b.score - a.score);
+
+  /* ★ 同点順位選択 */
+  ranked = await resolveTies(ranked);
 
   let row = {};
 
@@ -327,6 +383,13 @@ async function addMatch() {
   db.collection("mahjong-history").doc(todayData.date).set(todayData);
 
   alert("登録しました");
+
+  /* ★ 入力欄クリア */
+  todayData.players.forEach(name => {
+    document.getElementById("score_" + name).value = "";
+    document.getElementById("yakuman_" + name).value = 0;
+  });
+
   showHistory();
 }
 
@@ -354,7 +417,7 @@ function editMatch(index) {
 /* ------------------------------
    対局更新
 ------------------------------ */
-function updateMatch() {
+async function updateMatch() {
   if (editingMatchIndex === null) return;
 
   const uma = [
@@ -390,6 +453,9 @@ function updateMatch() {
   }));
 
   ranked.sort((a,b) => b.score - a.score);
+
+  /* ★ 同点順位選択 */
+  ranked = await resolveTies(ranked);
 
   let row = {};
 
@@ -489,23 +555,8 @@ function showHistory() {
 }
 
 /* ------------------------------
-   参加者4人チェック（元の仕様）
+   参加者4人チェック
 ------------------------------ */
 function validateFourPlayers(scores) {
   scores.forEach(p => {
-    p.score = p.score.replace(/[\s　]+/g, "");
-  });
-
-  const active = scores.filter(p => p.score !== "" && !isNaN(Number(p.score)));
-
-  if (active.length !== 4) {
-    alert("参加者は必ず4人です（素点を入力した4人が参加扱いになります）");
-    return null;
-  }
-
-  return active;
-}
-</script>
-
-</body>
-</html>
+    p.score = p.score
