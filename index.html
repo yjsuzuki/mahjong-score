@@ -136,11 +136,20 @@
     font-size:18px;
     margin-top:20px;
     line-height:1.2;
+
+    display:flex;          /* 横並びにする */
+    flex-wrap:wrap;        /* 折り返し */
+    gap:12px;              /* 間隔 */
   }
 
-  #playerList div {
-    margin-bottom:6px;
-  }
+#playerList div {
+  background:#333;
+  padding:6px 12px;
+  border-radius:8px;
+  border:1px solid #555;
+  margin:0;
+}
+
 </style>
 </head>
 <body>
@@ -225,6 +234,7 @@ function loadAllFromFirestore() {
           <div>
             <strong>${d.date}</strong>　
             <strong>${d.name}</strong>：${d.yaku}
+            ${d.note ? `　（${d.note}）` : ""}
           </div>
         `;
       });
@@ -254,13 +264,174 @@ function addPlayer() {
   loadAllFromFirestore();
 }
 
-/* ★ 役満登録 */
+/* ★ 役満登録（プレイヤーリストから選択） */
 function addYakuman() {
-  const name = prompt("役満達成者の名前を入力");
-  if (!name) return;
 
-  const yaku = prompt("役名を入力（例：四暗刻、国士無双など）");
-  if (!yaku) return;
+  // Firestore から players を取得して、選択用ダイアログを出す
+  db.collection("players").get().then(snapshot => {
+
+    const players = [];
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.name) players.push(d.name);
+    });
+
+    if (players.length === 0) {
+      alert("プレイヤーが登録されていません");
+      return;
+    }
+
+    // ダイアログHTML生成
+    const html = `
+      <div id="yakumanDialog" style="
+        position:fixed; top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.85); color:#f5d76e;
+        display:flex; justify-content:center; align-items:center;
+        font-size:32px; z-index:9999;
+      ">
+        <div style="
+          background:#222; padding:30px; border-radius:20px;
+          border:3px solid #bfa14a; width:80%; max-width:600px;
+        ">
+          <h2 style="text-align:center; margin-bottom:20px;">役満登録</h2>
+
+          <div style="margin-bottom:20px;">
+            <div>プレイヤー</div>
+            <select id="yk_player" style="
+              width:100%; padding:12px; font-size:28px;
+              background:#111; color:#f5d76e; border:2px solid #bfa14a;
+            ">
+              ${players.map(p => `<option value="${p}">${p}</option>`).join("")}
+            </select>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div>役名（例：四暗刻、国士無双など）</div>
+            <input id="yk_yaku" type="text" style="
+              width:100%; padding:12px; font-size:28px;
+              background:#111; color:#f5d76e; border:2px solid #bfa14a;
+            ">
+          </div>
+
+          <button onclick="saveYakumanFromDialog()" style="
+            width:100%; padding:20px; font-size:32px;
+            background:#bfa14a; color:#111; border:none; border-radius:12px;
+          ">登録する</button>
+
+          <button onclick="document.getElementById('yakumanDialog').remove()" style="
+            width:100%; padding:16px; font-size:26px; margin-top:10px;
+            background:#444; color:#eee; border:none; border-radius:12px;
+          ">キャンセル</button>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+/* ★ 役満登録（プレイヤーリスト＋役満リスト＋備考） */
+function addYakuman() {
+
+  // Firestore からプレイヤー一覧を取得
+  db.collection("players").get().then(snapshot => {
+
+    const players = [];
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.name) players.push(d.name);
+    });
+
+    if (players.length === 0) {
+      alert("プレイヤーが登録されていません");
+      return;
+    }
+
+    // 役満リスト
+    const yakumanList = [
+      "大三元",
+      "四暗刻",
+      "国士無双",
+      "字一色",
+      "清老頭",
+      "小四喜",
+      "緑一色",
+      "九蓮宝燈",
+      "四槓子",
+      "大四喜",
+      "天和",
+      "地和",
+      "人和",
+      "数え役満",
+      "国士無双十三面待ち",
+      "四暗刻単騎",
+      "純正九蓮宝燈"
+    ];
+
+    // UIダイアログ生成
+    const html = `
+      <div id="yakumanDialog" style="
+        position:fixed; top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.85); color:#f5d76e;
+        display:flex; justify-content:center; align-items:center;
+        font-size:32px; z-index:9999;
+      ">
+        <div style="
+          background:#222; padding:30px; border-radius:20px;
+          border:3px solid #bfa14a; width:80%; max-width:600px;
+        ">
+          <h2 style="text-align:center; margin-bottom:20px;">役満登録</h2>
+
+          <div style="margin-bottom:20px;">
+            <div>プレイヤー</div>
+            <select id="yk_player" style="
+              width:100%; padding:12px; font-size:28px;
+              background:#111; color:#f5d76e; border:2px solid #bfa14a;
+            ">
+              ${players.map(p => `<option value="${p}">${p}</option>`).join("")}
+            </select>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div>役名</div>
+            <select id="yk_yaku" style="
+              width:100%; padding:12px; font-size:28px;
+              background:#111; color:#f5d76e; border:2px solid #bfa14a;
+            ">
+              ${yakumanList.map(y => `<option value="${y}">${y}</option>`).join("")}
+            </select>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div>備考（任意）</div>
+            <textarea id="yk_note" rows="3" style="
+              width:100%; padding:12px; font-size:26px;
+              background:#111; color:#f5d76e; border:2px solid #bfa14a;
+            "></textarea>
+          </div>
+
+          <button onclick="saveYakumanFromDialog()" style="
+            width:100%; padding:20px; font-size:32px;
+            background:#bfa14a; color:#111; border:none; border-radius:12px;
+          ">登録する</button>
+
+          <button onclick="document.getElementById('yakumanDialog').remove()" style="
+            width:100%; padding:16px; font-size:26px; margin-top:10px;
+            background:#444; color:#eee; border:none; border-radius:12px;
+          ">キャンセル</button>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", html);
+  });
+}
+
+/* ★ 役満登録の保存処理（備考対応） */
+function saveYakumanFromDialog() {
+  const name = document.getElementById("yk_player").value;
+  const yaku = document.getElementById("yk_yaku").value;
+  const note = document.getElementById("yk_note").value.trim();
 
   const d = new Date();
   const dateStr =
@@ -269,11 +440,14 @@ function addYakuman() {
   db.collection("yakuman-achievements").add({
     name,
     yaku,
+    note,
     date: dateStr,
     timestamp: new Date()
   });
 
   alert("登録しました");
+
+  document.getElementById("yakumanDialog").remove();
   loadAllFromFirestore();
 }
 
@@ -343,19 +517,31 @@ function renderAll(history) {
   const list = document.getElementById("historyList");
   list.innerHTML = "";
 
-  history.forEach(h => {
-    const div = document.createElement("div");
-    div.className = "historyItem";
+history.forEach(h => {
+  const div = document.createElement("div");
+  div.className = "historyItem";
 
-    div.innerHTML = `
-      <strong>${h.date}</strong><br>
-      ${h.players.join(", ")}<br>
-      対局数: ${h.matches.length}
-      <button onclick="openHistory('${h.date}')">開く</button>
-    `;
+  // ★ プレイヤー名を順位順に並べ替え（総合成績の ranking を使用）
+  const sortedPlayers = ranking
+    .map(r => r.name)
+    .filter(name => h.players.includes(name));
 
-    list.appendChild(div);
+  // ★ 1:A, 2:B, 3:C の形式に変換
+  const numberedPlayers = sortedPlayers.map((name, index) => {
+    return `${index + 1}:${name}`;
   });
+
+  div.innerHTML = `
+    <strong>${h.date}</strong><br>
+    ${numberedPlayers.join(", ")}<br>
+    対局数: ${h.matches.length}
+    <button onclick="openHistory('${h.date}')">開く</button>
+  `;
+
+  list.appendChild(div);
+});
+
+
 }
 
 /* ★ 全データ初期化 */
