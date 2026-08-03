@@ -61,7 +61,6 @@
     background:#cc4444;
     color:white;
     border-radius:10px;
-    margin-top:40px;
   }
 
   #resetBtn:hover {
@@ -129,7 +128,6 @@
     margin-bottom:10px;
   }
 
-  /* ★ プレイヤー一覧（かなり小さく） */
   #playerList {
     background:#222;
     padding:8px;
@@ -169,14 +167,18 @@
 </h2>
 <div id="yakumanList"></div>
 
-<!-- ★ 役満達成者一覧の下にプレイヤー一覧 -->
 <h2 style="font-size:30px;">
   プレイヤー一覧
   <button class="smallBtn" style="font-size:20px;" onclick="addPlayer()">登録</button>
 </h2>
 <div id="playerList"></div>
 
-<button id="resetBtn" onclick="resetAll()">全データ初期化</button>
+<!-- ★ 全データ初期化 ＋ バックアップ ＋ 復元（横並び） -->
+<div style="display:flex; gap:20px; margin-top:40px;">
+  <button id="resetBtn" onclick="resetAll()" style="flex:1;">全データ初期化</button>
+  <button onclick="downloadBackup()" class="smallBtn" style="flex:1; font-size:22px; padding:16px;">バックアップ（CSV）</button>
+  <button onclick="restoreBackup()" class="smallBtn" style="flex:1; font-size:22px; padding:16px;">復元（CSV）</button>
+</div>
 
 <script>
 function createNew() {
@@ -185,40 +187,31 @@ function createNew() {
 
 function loadAllFromFirestore() {
 
-  /* プレイヤー一覧 */
   db.collection("players")
     .get()
     .then(snapshot => {
       const list = document.getElementById("playerList");
       list.innerHTML = "";
-
       snapshot.forEach(doc => {
         const d = doc.data();
-        list.innerHTML += `
-          <div>${d.name}</div>
-        `;
+        list.innerHTML += `<div>${d.name}</div>`;
       });
     });
 
-  /* 対局履歴 */
   db.collection("mahjong-history")
     .get()
     .then(snapshot => {
       const history = [];
       snapshot.forEach(doc => history.push(doc.data()));
-
       history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
       renderAll(history);
     });
 
-  /* 役満一覧 */
   db.collection("yakuman-achievements")
     .get()
     .then(snapshot => {
       const list = document.getElementById("yakumanList");
       list.innerHTML = "";
-
       snapshot.forEach(doc => {
         const d = doc.data();
         list.innerHTML += `
@@ -387,6 +380,103 @@ function resetAll() {
     alert("クラウドの全データを削除しました");
     location.reload();
   });
+}
+
+/* ------------------------------
+   ★ CSVバックアップ（日時入り）
+------------------------------ */
+function downloadBackup() {
+  Promise.all([
+    db.collection("players").get(),
+    db.collection("mahjong-history").get(),
+    db.collection("yakuman-achievements").get()
+  ]).then(([playersSnap, historySnap, yakuSnap]) => {
+
+    let csv = "type,data\n";
+
+    playersSnap.forEach(doc => {
+      csv += `player,${JSON.stringify(doc.data())}\n`;
+    });
+
+    historySnap.forEach(doc => {
+      csv += `history,${JSON.stringify(doc.data())}\n`;
+    });
+
+    yakuSnap.forEach(doc => {
+      csv += `yakuman,${JSON.stringify(doc.data())}\n`;
+    });
+
+    // ★ 日付を yyyymmddhhmmss 形式で作成
+    const d = new Date();
+    const timestamp =
+      d.getFullYear().toString() +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      String(d.getDate()).padStart(2, "0") +
+      String(d.getHours()).padStart(2, "0") +
+      String(d.getMinutes()).padStart(2, "0") +
+      String(d.getSeconds()).padStart(2, "0");
+
+    const filename = `mahjong_backup_${timestamp}.csv`;
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  });
+}
+
+/* ------------------------------
+   ★ CSV復元
+------------------------------ */
+function restoreBackup() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".csv";
+
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const lines = text.split("\n").slice(1);
+
+    await deleteAllCollections();
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      const [type, jsonStr] = line.split(/,(.+)/);
+      const data = JSON.parse(jsonStr);
+
+      if (type === "player") {
+        await db.collection("players").add(data);
+      } else if (type === "history") {
+        await db.collection("mahjong-history").doc(data.date).set(data);
+      } else if (type === "yakuman") {
+        await db.collection("yakuman-achievements").add(data);
+      }
+    }
+
+    alert("復元が完了しました");
+    location.reload();
+  };
+
+  input.click();
+}
+
+async function deleteAllCollections() {
+  const collections = ["players", "mahjong-history", "yakuman-achievements"];
+
+  for (const col of collections) {
+    const snap = await db.collection(col).get();
+    const deletes = snap.docs.map(doc => doc.ref.delete());
+    await Promise.all(deletes);
+  }
 }
 </script>
 
