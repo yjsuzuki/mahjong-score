@@ -155,6 +155,9 @@
 <body>
 
 <h1>麻雀 成績管理</h1>
+<p style="text-align:center; font-size:18px; font-weight:bold; color:#f5d76e; margin-top:-10px; line-height:1.4;">
+  本サイトに関する不具合や修正のご要望がありましたら、麻雀LINEグループにてお知らせください。<br>確認のうえ、対応いたします。（鈴木）
+</p>
 
 <!-- ★ 新しい対局を作成する（今日の日付を渡す） -->
 <button onclick="createNew()">新しい対局を作成する</button>
@@ -461,9 +464,10 @@ function openHistory(date) {
   location.href = "register.html?date=" + date;
 }
 
-/* ★ 総合成績＋過去一覧の描画 */
+/* ★ renderAll（最新＋年→月→日ツリー構造） */
 function renderAll(history) {
 
+  /* ▼ 総合成績 */
   let totals = {};
   let matchCounts = {};
 
@@ -519,52 +523,121 @@ function renderAll(history) {
   html += "</tbody></table>";
   resultContainer.innerHTML = html;
 
+  /* ▼ 過去一覧（ツリー表示） */
   const list = document.getElementById("historyList");
   list.innerHTML = "";
 
-history.forEach(h => {
-  const div = document.createElement("div");
-  div.className = "historyItem";
+  /* ★ 最新の対局（historyList の外に表示） */
+  const latest = history[0];
+  const latestDiv = document.createElement("div");
+  latestDiv.className = "historyItem";
+  latestDiv.style.border = "2px solid #bfa14a";
+  latestDiv.style.background = "#333";
+  latestDiv.style.marginBottom = "20px";   // ← ここで隙間を追加！
 
-  // ★ その日のポイント集計
   let dayTotals = {};
-
-  if (h.matches && h.matches.length > 0) {
-    h.matches.forEach(m => {
-      if (!m.row) return;
-
-      Object.keys(m.row).forEach(name => {
-        const r = m.row[name];
-        if (!r) return;
-
-        const match = r.match(/（(-?\d+)）/);
-        if (!match) return;
-
-        const point = Number(match[1]);
-        dayTotals[name] = (dayTotals[name] || 0) + point;
-      });
+  latest.matches.forEach(m => {
+    Object.keys(m.row).forEach(name => {
+      const r = m.row[name];
+      if (!r) return;
+      const match = r.match(/（(-?\d+)）/);
+      if (!match) return;
+      const point = Number(match[1]);
+      dayTotals[name] = (dayTotals[name] || 0) + point;
     });
-  }
+  });
 
-  // ★ その日の順位を作成
   let dayRanking = Object.entries(dayTotals)
     .map(([name, total]) => ({ name, total }))
     .sort((a,b) => b.total - a.total);
 
-  const numberedPlayers = dayRanking.map((p,i) => `${i+1}:${p.name}`);
+  const rankTextLatest = dayRanking.map((p,i) => `${i+1}:${p.name}`).join("　");
 
-  div.innerHTML = `
-    <strong>${h.date}</strong><br>
-    ${numberedPlayers.join("　")}<br>
-    対局数: ${h.matches.length}
-    <button onclick="openHistory('${h.date}')">開く</button>
+  latestDiv.innerHTML = `
+  <strong style="font-size:26px; color:#f5d76e;">最新の対局</strong><br>
+  <span style="white-space:nowrap;">
+    <a href="register.html?date=${latest.date}"
+       style="color:#f5d76e; font-size:26px; font-weight:bold; text-decoration:none;">
+       ${latest.date}
+    </a>
+    【${rankTextLatest}】
+    </span>
   `;
 
-  list.appendChild(div);
-});
 
+  /* ★ 最新の対局を historyList の前に挿入 */
+  list.parentNode.insertBefore(latestDiv, list);
 
+  /* ★ 年→月→日 ツリー構造 */
+  const grouped = {};
 
+  history.forEach(h => {
+    const d = new Date(h.date);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+
+    if (!grouped[year]) grouped[year] = {};
+    if (!grouped[year][month]) grouped[year][month] = [];
+    grouped[year][month].push(h);
+  });
+
+  Object.keys(grouped).sort((a,b) => b - a).forEach(year => {
+
+    /* 年（インデントなし） */
+    const yearDetails = document.createElement("details");
+    yearDetails.style.marginLeft = "0px";
+    yearDetails.innerHTML = `<summary style="font-size:22px; color:#f5d76e;">${year}年</summary>`;
+
+    Object.keys(grouped[year]).sort((a,b) => b - a).forEach(month => {
+
+      /* 月（1段下げ） */
+      const monthDetails = document.createElement("details");
+      monthDetails.style.marginLeft = "20px";
+      monthDetails.innerHTML = `<summary style="font-size:18px; color:#ddd;">${month}月</summary>`;
+
+      grouped[year][month].forEach(h => {
+
+        /* 日付（さらに1段下げ） */
+        let dayTotals = {};
+        h.matches.forEach(m => {
+          Object.keys(m.row).forEach(name => {
+            const r = m.row[name];
+            if (!r) return;
+            const match = r.match(/（(-?\d+)）/);
+            if (!match) return;
+            const point = Number(match[1]);
+            dayTotals[name] = (dayTotals[name] || 0) + point;
+          });
+        });
+
+        let dayRanking = Object.entries(dayTotals)
+          .map(([name, total]) => ({ name, total }))
+          .sort((a,b) => b.total - a.total);
+
+        const rankText = dayRanking.map((p,i) => `${i+1}:${p.name}`).join("　");
+
+        const div = document.createElement("div");
+        div.className = "historyItem";
+        div.style.marginLeft = "40px";   // ← 日付はさらに下げる
+
+        div.innerHTML = `
+         <span style="white-space:nowrap;">
+         <a href="register.html?date=${h.date}"
+          style="color:#f5d76e; font-weight:bold; text-decoration:none;">
+          ${h.date}
+         </a>
+         【${rankText}】
+         </span>
+        `;
+
+        monthDetails.appendChild(div);
+      });
+
+      yearDetails.appendChild(monthDetails);
+    });
+
+    list.appendChild(yearDetails);
+  });
 }
 
 /* ★ 全データ初期化 */
