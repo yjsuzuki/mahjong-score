@@ -74,13 +74,10 @@
   }
 
   .historyItem {
-    background:#222;
-    padding:10px;
-    border-radius:8px;
-    border:2px solid #444;
+    background:none;
+    border:none;
+    padding:4px 0;
     font-size:22px;
-    width:100%;
-    box-sizing:border-box;
     line-height:1.3;
   }
 
@@ -531,8 +528,6 @@ function renderAll(history) {
   const latest = history[0];
   const latestDiv = document.createElement("div");
   latestDiv.className = "historyItem";
-  latestDiv.style.border = "2px solid #bfa14a";
-  latestDiv.style.background = "#333";
   latestDiv.style.marginBottom = "20px";
 
   let dayTotals = {};
@@ -631,9 +626,13 @@ function renderAll(history) {
             const medal = i === 0 ? "🥇" :
                           i === 1 ? "🥈" :
                           i === 2 ? "🥉" : "🔹";
-            return `${medal}${p.name}（${p.total}）`;
+            return `
+              <span style="display:inline-block; width:150px;">
+                ${medal}${p.name}（${p.total}）
+              </span>
+            `;
          })
-         .join("　");
+         .join("");
 
         const div = document.createElement("div");
         div.className = "historyItem";
@@ -641,10 +640,10 @@ function renderAll(history) {
 
         div.innerHTML = `
           <span style="white-space:nowrap;">
-            <a href="register.html?date=${h.date}"
-               style="color:#7CFC00; font-weight:bold; text-decoration:none;">
-               ${h.date}
-            </a>
+              <a href="register.html?date=${h.date}"
+                 style="color:#7CFC00; font-weight:bold; text-decoration:none;">
+                 ${h.date}
+              </a>
             【${rankText}】
           </span>
         `;
