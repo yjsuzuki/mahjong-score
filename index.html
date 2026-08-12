@@ -156,7 +156,7 @@
 
 <h1>麻雀 成績管理</h1>
 <p style="text-align:center; font-size:18px; font-weight:bold; color:#f5d76e; margin-top:-10px; line-height:1.4;">
-  本サイトに関する不具合や修正のご要望がありましたら、麻雀LINEグループにてお知らせください。<br>確認のうえ、対応いたします。（鈴木）
+  本サイトに関する不具合や修正のご要望がありましたら、麻雀LINEグループにてお知らせください。確認のうえ、対応いたします。（鈴木）
 </p>
 
 <!-- ★ 新しい対局を作成する（今日の日付を渡す） -->
@@ -533,7 +533,7 @@ function renderAll(history) {
   latestDiv.className = "historyItem";
   latestDiv.style.border = "2px solid #bfa14a";
   latestDiv.style.background = "#333";
-  latestDiv.style.marginBottom = "20px";   // ← ここで隙間を追加！
+  latestDiv.style.marginBottom = "20px";
 
   let dayTotals = {};
   latest.matches.forEach(m => {
@@ -551,21 +551,26 @@ function renderAll(history) {
     .map(([name, total]) => ({ name, total }))
     .sort((a,b) => b.total - a.total);
 
-  const rankTextLatest = dayRanking.map((p,i) => `${i+1}:${p.name}`).join("　");
+  const rankTextLatest = dayRanking
+    .map((p,i) => {
+      const medal = i === 0 ? "🥇" :
+                    i === 1 ? "🥈" :
+                    i === 2 ? "🥉" : "🔹";
+      return `${medal}${p.name}（${p.total}）`;
+    })
+    .join("　");
 
   latestDiv.innerHTML = `
-  <strong style="font-size:26px; color:#f5d76e;">最新の対局</strong><br>
-  <span style="white-space:nowrap;">
-    <a href="register.html?date=${latest.date}"
-       style="color:#f5d76e; font-size:26px; font-weight:bold; text-decoration:none;">
-       ${latest.date}
-    </a>
-    【${rankTextLatest}】
+    <strong style="font-size:26px; color:#f5d76e;">最新の対局</strong><br>
+    <span style="white-space:nowrap;">
+      <a href="register.html?date=${latest.date}"
+         style="color:#7CFC00; font-size:26px; font-weight:bold; text-decoration:none;">
+         ${latest.date}
+      </a>
+      【${rankTextLatest}】
     </span>
   `;
 
-
-  /* ★ 最新の対局を historyList の前に挿入 */
   list.parentNode.insertBefore(latestDiv, list);
 
   /* ★ 年→月→日 ツリー構造 */
@@ -583,21 +588,28 @@ function renderAll(history) {
 
   Object.keys(grouped).sort((a,b) => b - a).forEach(year => {
 
-    /* 年（インデントなし） */
+    /* 年（大きく） */
     const yearDetails = document.createElement("details");
     yearDetails.style.marginLeft = "0px";
-    yearDetails.innerHTML = `<summary style="font-size:22px; color:#f5d76e;">${year}年</summary>`;
+    yearDetails.innerHTML = `
+      <summary style="font-size:26px; color:#f5d76e;">
+        ${year}年
+      </summary>
+    `;
 
     Object.keys(grouped[year]).sort((a,b) => b - a).forEach(month => {
 
-      /* 月（1段下げ） */
+      /* 月（大きく＋インデント） */
       const monthDetails = document.createElement("details");
       monthDetails.style.marginLeft = "20px";
-      monthDetails.innerHTML = `<summary style="font-size:18px; color:#ddd;">${month}月</summary>`;
+      monthDetails.innerHTML = `
+        <summary style="font-size:22px; color:#ddd;">
+          ${month}月
+        </summary>
+      `;
 
       grouped[year][month].forEach(h => {
 
-        /* 日付（さらに1段下げ） */
         let dayTotals = {};
         h.matches.forEach(m => {
           Object.keys(m.row).forEach(name => {
@@ -614,20 +626,27 @@ function renderAll(history) {
           .map(([name, total]) => ({ name, total }))
           .sort((a,b) => b.total - a.total);
 
-        const rankText = dayRanking.map((p,i) => `${i+1}:${p.name}`).join("　");
+        const rankText = dayRanking
+          .map((p,i) => {
+            const medal = i === 0 ? "🥇" :
+                          i === 1 ? "🥈" :
+                          i === 2 ? "🥉" : "🔹";
+            return `${medal}${p.name}（${p.total}）`;
+         })
+         .join("　");
 
         const div = document.createElement("div");
         div.className = "historyItem";
-        div.style.marginLeft = "40px";   // ← 日付はさらに下げる
+        div.style.marginLeft = "40px";
 
         div.innerHTML = `
-         <span style="white-space:nowrap;">
-         <a href="register.html?date=${h.date}"
-          style="color:#f5d76e; font-weight:bold; text-decoration:none;">
-          ${h.date}
-         </a>
-         【${rankText}】
-         </span>
+          <span style="white-space:nowrap;">
+            <a href="register.html?date=${h.date}"
+               style="color:#7CFC00; font-weight:bold; text-decoration:none;">
+               ${h.date}
+            </a>
+            【${rankText}】
+          </span>
         `;
 
         monthDetails.appendChild(div);
