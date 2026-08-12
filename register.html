@@ -494,16 +494,42 @@ function showHistory() {
 
   historyBody.innerHTML = "";
 
-  todayData.matches.forEach((h, index) => {
-    let tr = `<td class="clickable" onclick="editMatch(${index})">${h.match}</td>`;
+todayData.matches.forEach((h, index) => {
 
-    players.forEach(name => {
-      const r = h.row[name];
-      tr += `<td>${r ? r : "－－"}</td>`;
-    });
-
-    historyBody.innerHTML += "<tr>" + tr + "</tr>";
+  // ★ ① この対局の total を集計（順位判定用）
+  let dayTotals = {};
+  players.forEach(name => {
+    const r = h.row[name];
+    if (!r) return;
+    const match = r.match(/（(-?\d+)）/);
+    const point = match ? Number(match[1]) : 0;
+    dayTotals[name] = point;
   });
+
+  // ★ ① 順位を計算（dayRanking ができる）
+  let dayRanking = Object.entries(dayTotals)
+    .map(([name, total]) => ({ name, total }))
+    .sort((a,b) => b.total - a.total);
+
+  // ★ 対局番号セル
+  let tr = `<td class="clickable" onclick="editMatch(${index})">${h.match}</td>`;
+
+  // ★ プレイヤーごとのセル（ここにメダルを付ける）
+  players.forEach(name => {
+    const r = h.row[name];
+
+    const rankIndex = dayRanking.findIndex(p => p.name === name);
+
+    let medal = "";
+    if (rankIndex === 0) medal = "🥇";
+    else if (rankIndex === 1) medal = "🥈";
+    else if (rankIndex === 2) medal = "🥉";
+
+    tr += `<td>${r ? medal + r : "－－"}</td>`;
+  });
+
+  historyBody.innerHTML += "<tr>" + tr + "</tr>";
+});
 
   let totals = {};
 
@@ -565,3 +591,7 @@ function validateFourPlayers(scores) {
 </script>
 
 </body>
+<button onclick="location.href='index.html'" 
+        style="margin-top:40px; background:#bfa14a; color:#111; font-size:38px; padding:28px; border-radius:16px;">
+  トップ画面に戻る
+</button>
