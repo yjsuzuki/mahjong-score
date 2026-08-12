@@ -214,14 +214,19 @@ function loadAllFromFirestore() {
       });
     });
 
-  db.collection("mahjong-history")
-    .get()
-    .then(snapshot => {
-      const history = [];
-      snapshot.forEach(doc => history.push(doc.data()));
-      history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      renderAll(history);
+db.collection("mahjong-history")
+  .get()
+  .then(snapshot => {
+    const history = [];
+    snapshot.forEach(doc => history.push(doc.data()));
+
+    // ★ date を使って新しい順に並べる（確実に動く）
+    history.sort((a, b) => {
+      return new Date(b.date) - new Date(a.date);
     });
+
+    renderAll(history);
+});
 
   db.collection("yakuman-achievements")
     .get()
